@@ -1,9 +1,14 @@
 package com.focusgram.client.ui.components
 
+import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.navigationBarsPadding
@@ -11,39 +16,33 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.rounded.AutoStories
-import androidx.compose.material.icons.rounded.Block
-import androidx.compose.material.icons.rounded.Contrast
-import androidx.compose.material.icons.rounded.ExploreOff
-import androidx.compose.material.icons.rounded.FavoriteBorder
-import androidx.compose.material.icons.rounded.Settings
-import androidx.compose.material.icons.rounded.Shield
-import androidx.compose.material.icons.rounded.Smartphone
-import androidx.compose.material.icons.rounded.VideocamOff
-import androidx.compose.material.icons.rounded.VisibilityOff
-import androidx.compose.material.icons.rounded.VolumeOff
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.FilledTonalButton
-import androidx.compose.material3.FilterChip
-import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Surface
-import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
+import androidx.compose.material3.VerticalDivider
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.focusgram.client.data.FocusPreferences
 import com.focusgram.client.data.FocusPreset
+import com.focusgram.client.ui.theme.IosBlue
+import com.focusgram.client.ui.theme.IosGray
+import com.focusgram.client.ui.theme.IosGreen
+import com.focusgram.client.ui.theme.IosIndigo
+import com.focusgram.client.ui.theme.IosOrange
+import com.focusgram.client.ui.theme.IosPink
+import com.focusgram.client.ui.theme.IosPurple
+import com.focusgram.client.ui.theme.IosRed
+import com.focusgram.client.ui.theme.IosTeal
 import java.util.Locale
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -53,6 +52,7 @@ fun FocusControlSheet(
     sessionElapsedSeconds: Int,
     blockedTrackersCount: Int,
     blockedDistractionsCount: Int,
+    isDarkTheme: Boolean,
     onDismiss: () -> Unit,
     onApplyPreset: (FocusPreset) -> Unit,
     onToggleHideReels: (Boolean) -> Unit,
@@ -71,194 +71,257 @@ fun FocusControlSheet(
     ModalBottomSheet(
         onDismissRequest = onDismiss,
         sheetState = sheetState,
-        containerColor = MaterialTheme.colorScheme.surface
+        shape = RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp),
+        containerColor = MaterialTheme.colorScheme.background,
+        dragHandle = {
+            Box(
+                modifier = Modifier
+                    .padding(top = 10.dp, bottom = 6.dp)
+                    .size(width = 36.dp, height = 5.dp)
+                    .background(
+                        color = MaterialTheme.colorScheme.outline.copy(alpha = 0.35f),
+                        shape = CircleShape
+                    )
+            )
+        }
     ) {
         Column(
             modifier = Modifier
                 .fillMaxWidth()
                 .verticalScroll(rememberScrollState())
-                .padding(horizontal = 20.dp)
+                .padding(horizontal = 16.dp)
                 .navigationBarsPadding()
                 .padding(bottom = 20.dp)
         ) {
+            // Sheet Header
             Row(
                 verticalAlignment = Alignment.CenterVertically,
-                modifier = Modifier.fillMaxWidth()
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 4.dp, vertical = 6.dp)
             ) {
-                Icon(
-                    imageVector = Icons.Rounded.Shield,
-                    contentDescription = null,
-                    tint = MaterialTheme.colorScheme.primary,
-                    modifier = Modifier.size(24.dp)
+                IosIconBadge(
+                    icon = FocusIcons.ShieldFilled,
+                    tint = MaterialTheme.colorScheme.primary
                 )
-                Spacer(modifier = Modifier.width(10.dp))
+                Spacer(modifier = Modifier.width(12.dp))
                 Column(modifier = Modifier.weight(1f)) {
                     Text(
-                        text = "Kontrol Mode Fokus",
-                        style = MaterialTheme.typography.titleLarge
+                        text = "Mode Fokus",
+                        style = MaterialTheme.typography.titleLarge,
+                        color = MaterialTheme.colorScheme.onBackground
                     )
                     Text(
-                        text = "Perubahan diterapkan langsung tanpa muat ulang",
+                        text = "Diterapkan seketika tanpa muat ulang",
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
             }
 
-            Spacer(modifier = Modifier.height(16.dp))
+            Spacer(modifier = Modifier.height(14.dp))
 
-            // Session & Privacy Stats Card
-            Surface(
-                shape = RoundedCornerShape(16.dp),
-                color = MaterialTheme.colorScheme.surfaceContainer,
-                modifier = Modifier.fillMaxWidth()
-            ) {
+            // Inset Grouped Session Stats
+            IosGroupedCard {
                 Row(
                     horizontalArrangement = Arrangement.SpaceEvenly,
+                    verticalAlignment = Alignment.CenterVertically,
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(vertical = 14.dp, horizontal = 8.dp)
+                        .height(IntrinsicSize.Min)
+                        .padding(vertical = 12.dp)
                 ) {
                     StatColumn(
                         value = formatSessionTime(sessionElapsedSeconds),
-                        label = "Durasi Sesi"
+                        label = "Durasi Sesi",
+                        modifier = Modifier.weight(1f)
+                    )
+                    VerticalDivider(
+                        thickness = 0.5.dp,
+                        color = MaterialTheme.colorScheme.outline.copy(alpha = 0.22f),
+                        modifier = Modifier
+                            .fillMaxHeight()
+                            .padding(vertical = 4.dp)
                     )
                     StatColumn(
                         value = blockedDistractionsCount.toString(),
-                        label = "Distraksi Dihapus"
+                        label = "Distraksi",
+                        modifier = Modifier.weight(1f)
+                    )
+                    VerticalDivider(
+                        thickness = 0.5.dp,
+                        color = MaterialTheme.colorScheme.outline.copy(alpha = 0.22f),
+                        modifier = Modifier
+                            .fillMaxHeight()
+                            .padding(vertical = 4.dp)
                     )
                     StatColumn(
                         value = blockedTrackersCount.toString(),
-                        label = "Pelacak Diblokir"
-                    )
-                }
-            }
-
-            Spacer(modifier = Modifier.height(16.dp))
-
-            Text(
-                text = "Preset Cepat",
-                style = MaterialTheme.typography.titleSmall,
-                color = MaterialTheme.colorScheme.primary
-            )
-            Spacer(modifier = Modifier.height(8.dp))
-
-            Row(
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                FocusPreset.entries.forEach { preset ->
-                    FilterChip(
-                        selected = false,
-                        onClick = { onApplyPreset(preset) },
-                        label = {
-                            Text(
-                                text = when (preset) {
-                                    FocusPreset.ZEN -> "Zen"
-                                    FocusPreset.BALANCED -> "Seimbang"
-                                    FocusPreset.CLASSIC -> "Minimalis"
-                                }
-                            )
-                        },
+                        label = "Pelacak",
                         modifier = Modifier.weight(1f)
                     )
                 }
             }
 
-            Spacer(modifier = Modifier.height(12.dp))
-            HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.2f))
-            Spacer(modifier = Modifier.height(8.dp))
+            Spacer(modifier = Modifier.height(16.dp))
 
-            FocusToggleRow(
-                icon = Icons.Rounded.VideocamOff,
-                title = "Sembunyikan Reels",
-                subtitle = "Hapus tab Reels & blokir rute /reels",
-                checked = preferences.hideReels,
-                onCheckedChange = onToggleHideReels
+            IosSectionHeader(title = "Preset Cepat")
+            IosSegmentedControl(
+                items = FocusPreset.entries,
+                selectedItem = preferences.matchingPreset,
+                labelProvider = { preset ->
+                    when (preset) {
+                        FocusPreset.ZEN -> "Zen"
+                        FocusPreset.BALANCED -> "Seimbang"
+                        FocusPreset.CLASSIC -> "Minimalis"
+                    }
+                },
+                onSelect = onApplyPreset
             )
-            FocusToggleRow(
-                icon = Icons.Rounded.ExploreOff,
-                title = "Sembunyikan Grid Explore",
-                subtitle = "Tetap bisa mencari akun tanpa konten viral",
-                checked = preferences.hideExploreFeed,
-                onCheckedChange = onToggleHideExploreFeed
-            )
-            FocusToggleRow(
-                icon = Icons.Rounded.VisibilityOff,
-                title = "Sembunyikan Saran & Iklan",
-                subtitle = "Filter postingan 'Disarankan' dan 'Bersponsor'",
-                checked = preferences.hideSuggestedAndAds,
-                onCheckedChange = onToggleHideSuggestedAndAds
-            )
-            FocusToggleRow(
-                icon = Icons.Rounded.Smartphone,
-                title = "Hapus Banner 'Buka Aplikasi'",
-                subtitle = "Bersihkan ajakan unduh/buka aplikasi resmi",
-                checked = preferences.hideOpenInAppPrompts,
-                onCheckedChange = onToggleHideOpenInApp
-            )
-            FocusToggleRow(
-                icon = Icons.Rounded.AutoStories,
-                title = "Sembunyikan Stories",
-                subtitle = "Fokus hanya pada postingan feed & pesan",
-                checked = preferences.hideStories,
-                onCheckedChange = onToggleHideStories
-            )
-            FocusToggleRow(
-                icon = Icons.Rounded.FavoriteBorder,
-                title = "Sembunyikan Jumlah Like",
-                subtitle = "Kurangi pemicu validasi sosial",
-                checked = preferences.hideEngagementCounts,
-                onCheckedChange = onToggleHideEngagementCounts
-            )
-            FocusToggleRow(
-                icon = Icons.Rounded.VolumeOff,
-                title = "Auto-Mute Video",
-                subtitle = "Bisukan suara video secara otomatis",
-                checked = preferences.autoMuteVideos,
-                onCheckedChange = onToggleAutoMuteVideos
-            )
-            FocusToggleRow(
-                icon = Icons.Rounded.Contrast,
-                title = "Mode Monokrom (Grayscale)",
-                subtitle = "Tampilan hitam-putih untuk mengurangi adiksi visual",
-                checked = preferences.grayscaleMode,
-                onCheckedChange = onToggleGrayscaleMode
-            )
-            FocusToggleRow(
-                icon = Icons.Rounded.Block,
-                title = "Blokir Pelacak & Telemetri",
-                subtitle = "Hemat kuota & RAM dengan memblokir skrip analitik",
-                checked = preferences.blockTrackers,
-                onCheckedChange = onToggleBlockTrackers
-            )
+
+            Spacer(modifier = Modifier.height(18.dp))
+
+            IosSectionHeader(title = "Filter Konten & Privasi")
+            IosGroupedCard {
+                IosToggleRow(
+                    icon = FocusIcons.ReelsOff,
+                    iconTint = IosPink,
+                    title = "Sembunyikan Reels",
+                    subtitle = "Hapus tab Reels & blokir rute /reels",
+                    checked = preferences.hideReels,
+                    onCheckedChange = onToggleHideReels,
+                    isDark = isDarkTheme
+                )
+                IosHairlineDivider(startIndent = 56.dp)
+                IosToggleRow(
+                    icon = FocusIcons.ExploreOff,
+                    iconTint = IosIndigo,
+                    title = "Sembunyikan Grid Explore",
+                    subtitle = "Tetap bisa mencari akun tanpa konten viral",
+                    checked = preferences.hideExploreFeed,
+                    onCheckedChange = onToggleHideExploreFeed,
+                    isDark = isDarkTheme
+                )
+                IosHairlineDivider(startIndent = 56.dp)
+                IosToggleRow(
+                    icon = FocusIcons.EyeSlash,
+                    iconTint = IosOrange,
+                    title = "Sembunyikan Saran & Iklan",
+                    subtitle = "Filter postingan 'Disarankan' dan 'Bersponsor'",
+                    checked = preferences.hideSuggestedAndAds,
+                    onCheckedChange = onToggleHideSuggestedAndAds,
+                    isDark = isDarkTheme
+                )
+                IosHairlineDivider(startIndent = 56.dp)
+                IosToggleRow(
+                    icon = FocusIcons.Phone,
+                    iconTint = IosBlue,
+                    title = "Hapus Banner 'Buka Aplikasi'",
+                    subtitle = "Bersihkan ajakan unduh/buka aplikasi resmi",
+                    checked = preferences.hideOpenInAppPrompts,
+                    onCheckedChange = onToggleHideOpenInApp,
+                    isDark = isDarkTheme
+                )
+                IosHairlineDivider(startIndent = 56.dp)
+                IosToggleRow(
+                    icon = FocusIcons.Stories,
+                    iconTint = IosPurple,
+                    title = "Sembunyikan Stories",
+                    subtitle = "Fokus hanya pada feed & pesan langsung",
+                    checked = preferences.hideStories,
+                    onCheckedChange = onToggleHideStories,
+                    isDark = isDarkTheme
+                )
+                IosHairlineDivider(startIndent = 56.dp)
+                IosToggleRow(
+                    icon = FocusIcons.HeartOutline,
+                    iconTint = IosRed,
+                    title = "Sembunyikan Jumlah Like",
+                    subtitle = "Kurangi pemicu validasi sosial",
+                    checked = preferences.hideEngagementCounts,
+                    onCheckedChange = onToggleHideEngagementCounts,
+                    isDark = isDarkTheme
+                )
+                IosHairlineDivider(startIndent = 56.dp)
+                IosToggleRow(
+                    icon = FocusIcons.SpeakerSlash,
+                    iconTint = IosTeal,
+                    title = "Auto-Mute Video",
+                    subtitle = "Bisukan suara video secara otomatis",
+                    checked = preferences.autoMuteVideos,
+                    onCheckedChange = onToggleAutoMuteVideos,
+                    isDark = isDarkTheme
+                )
+                IosHairlineDivider(startIndent = 56.dp)
+                IosToggleRow(
+                    icon = FocusIcons.Contrast,
+                    iconTint = IosGray,
+                    title = "Mode Monokrom (Grayscale)",
+                    subtitle = "Tampilan hitam-putih untuk kurangi adiksi visual",
+                    checked = preferences.grayscaleMode,
+                    onCheckedChange = onToggleGrayscaleMode,
+                    isDark = isDarkTheme
+                )
+                IosHairlineDivider(startIndent = 56.dp)
+                IosToggleRow(
+                    icon = FocusIcons.Block,
+                    iconTint = IosGreen,
+                    title = "Blokir Pelacak & Telemetri",
+                    subtitle = "Hemat kuota & RAM dari skrip analitik",
+                    checked = preferences.blockTrackers,
+                    onCheckedChange = onToggleBlockTrackers,
+                    isDark = isDarkTheme
+                )
+            }
 
             Spacer(modifier = Modifier.height(16.dp))
 
-            FilledTonalButton(
+            // iOS Capsule Full-Width Action Button
+            Surface(
                 onClick = onOpenFullSettings,
-                modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(14.dp)
+                shape = RoundedCornerShape(14.dp),
+                color = MaterialTheme.colorScheme.surfaceContainer,
+                contentColor = MaterialTheme.colorScheme.secondary,
+                border = BorderStroke(
+                    width = 0.5.dp,
+                    color = MaterialTheme.colorScheme.outline.copy(alpha = 0.22f)
+                ),
+                modifier = Modifier.fillMaxWidth()
             ) {
-                Icon(
-                    imageVector = Icons.Rounded.Settings,
-                    contentDescription = null,
-                    modifier = Modifier.size(18.dp)
-                )
-                Spacer(modifier = Modifier.width(8.dp))
-                Text("Pengaturan Lengkap (Tema, Timer, Privasi)")
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.Center,
+                    modifier = Modifier.padding(vertical = 13.dp, horizontal = 16.dp)
+                ) {
+                    Icon(
+                        imageVector = FocusIcons.Gear,
+                        contentDescription = null,
+                        modifier = Modifier.size(18.dp)
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text(
+                        text = "Pengaturan Lengkap",
+                        style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.SemiBold)
+                    )
+                }
             }
         }
     }
 }
 
 @Composable
-private fun StatColumn(value: String, label: String) {
-    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+private fun StatColumn(
+    value: String,
+    label: String,
+    modifier: Modifier = Modifier
+) {
+    Column(
+        horizontalAlignment = Alignment.CenterHorizontally,
+        modifier = modifier
+    ) {
         Text(
             text = value,
-            style = MaterialTheme.typography.titleMedium,
-            fontWeight = FontWeight.Bold,
+            style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
             color = MaterialTheme.colorScheme.primary
         )
         Spacer(modifier = Modifier.height(2.dp))
@@ -266,47 +329,6 @@ private fun StatColumn(value: String, label: String) {
             text = label,
             style = MaterialTheme.typography.labelMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant
-        )
-    }
-}
-
-@Composable
-private fun FocusToggleRow(
-    icon: ImageVector,
-    title: String,
-    subtitle: String,
-    checked: Boolean,
-    onCheckedChange: (Boolean) -> Unit
-) {
-    Row(
-        verticalAlignment = Alignment.CenterVertically,
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(vertical = 8.dp)
-    ) {
-        Icon(
-            imageVector = icon,
-            contentDescription = null,
-            tint = if (checked) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
-            modifier = Modifier.size(22.dp)
-        )
-        Spacer(modifier = Modifier.width(14.dp))
-        Column(modifier = Modifier.weight(1f)) {
-            Text(
-                text = title,
-                style = MaterialTheme.typography.bodyLarge,
-                fontWeight = FontWeight.Medium
-            )
-            Text(
-                text = subtitle,
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-        }
-        Spacer(modifier = Modifier.width(12.dp))
-        Switch(
-            checked = checked,
-            onCheckedChange = onCheckedChange
         )
     }
 }

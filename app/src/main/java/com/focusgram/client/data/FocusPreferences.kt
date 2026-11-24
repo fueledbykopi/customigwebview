@@ -1,10 +1,12 @@
 package com.focusgram.client.data
 
+import androidx.compose.runtime.Immutable
+
 enum class ThemeMode(val label: String) {
-    SYSTEM("Ikuti Sistem"),
+    SYSTEM("Sistem"),
     LIGHT("Terang"),
     DARK("Gelap"),
-    AMOLED("AMOLED Hitam Pekat")
+    AMOLED("AMOLED")
 }
 
 enum class FocusPreset(val label: String, val description: String) {
@@ -22,6 +24,7 @@ enum class InstagramSection(val title: String, val url: String) {
     OTHER("Instagram", "https://www.instagram.com/")
 }
 
+@Immutable
 data class FocusPreferences(
     val hideOpenInAppPrompts: Boolean = true,
     val hideReels: Boolean = true,
@@ -51,4 +54,21 @@ data class FocusPreferences(
             grayscaleMode,
             blockTrackers
         ).count { it }
+
+    val matchingPreset: FocusPreset?
+        get() = when {
+            hideOpenInAppPrompts && hideReels && hideExploreFeed && hideStories &&
+                hideSuggestedAndAds && hideEngagementCounts && autoMuteVideos &&
+                grayscaleMode && blockTrackers -> FocusPreset.ZEN
+
+            hideOpenInAppPrompts && hideReels && hideExploreFeed && !hideStories &&
+                hideSuggestedAndAds && !hideEngagementCounts && !autoMuteVideos &&
+                !grayscaleMode && blockTrackers -> FocusPreset.BALANCED
+
+            hideOpenInAppPrompts && !hideReels && !hideExploreFeed && !hideStories &&
+                !hideSuggestedAndAds && !hideEngagementCounts && !autoMuteVideos &&
+                !grayscaleMode && blockTrackers -> FocusPreset.CLASSIC
+
+            else -> null
+        }
 }

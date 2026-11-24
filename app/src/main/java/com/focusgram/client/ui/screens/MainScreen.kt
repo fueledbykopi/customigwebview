@@ -10,6 +10,7 @@ import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.slideInHorizontally
 import androidx.compose.animation.slideOutHorizontally
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -25,9 +26,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.rounded.Shield
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.Icon
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
@@ -47,6 +46,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
@@ -55,6 +55,7 @@ import com.focusgram.client.data.ThemeMode
 import com.focusgram.client.ui.FocusGramViewModel
 import com.focusgram.client.ui.components.FocusBottomNavBar
 import com.focusgram.client.ui.components.FocusControlSheet
+import com.focusgram.client.ui.components.FocusIcons
 import com.focusgram.client.ui.components.FocusTopBar
 import com.focusgram.client.ui.components.MindfulBreakDialog
 import com.focusgram.client.ui.components.OfflineErrorOverlay
@@ -139,6 +140,7 @@ fun MainScreen(
                         isLoading = uiState.isLoading,
                         loadingProgress = uiState.loadingProgress,
                         activeFilterCount = preferences.activeFilterCount,
+                        isDarkTheme = isDarkTheme,
                         onBackClick = { webViewController.goBack() },
                         onTitleClick = { webViewController.scrollToTop() },
                         onFocusControlsClick = { viewModel.setFocusSheetVisible(true) },
@@ -162,6 +164,7 @@ fun MainScreen(
                 if (preferences.useNativeBottomBar && !uiState.isAuthRoute) {
                     FocusBottomNavBar(
                         currentSection = uiState.currentSection,
+                        isDarkTheme = isDarkTheme,
                         onSelectSection = { section ->
                             viewModel.clearError()
                             webViewController.navigateToSection(section, uiState.currentSection)
@@ -216,26 +219,35 @@ fun MainScreen(
                     modifier = Modifier.fillMaxSize()
                 )
 
-                // Slim progress bar & subtle Focus pill when TopBar is hidden (Immersive mode)
+                // Slim progress bar & Liquid Glass Focus pill when TopBar is hidden (Immersive mode)
                 if (!preferences.showTopBar) {
                     if (uiState.isLoading && uiState.loadingProgress in 1..99) {
                         LinearProgressIndicator(
                             progress = { uiState.loadingProgress / 100f },
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .height(2.5.dp)
+                                .height(2.dp)
                                 .align(Alignment.TopCenter),
-                            color = MaterialTheme.colorScheme.primary
+                            color = MaterialTheme.colorScheme.primary,
+                            trackColor = Color.Transparent,
+                            strokeCap = StrokeCap.Round
                         )
                     }
 
                     Surface(
                         onClick = { viewModel.setFocusSheetVisible(true) },
-                        shape = RoundedCornerShape(50),
+                        shape = CircleShape,
                         color = MaterialTheme.colorScheme.surface.copy(alpha = 0.88f),
                         contentColor = MaterialTheme.colorScheme.primary,
-                        tonalElevation = 4.dp,
-                        shadowElevation = 2.dp,
+                        border = BorderStroke(
+                            width = 0.6.dp,
+                            color = if (isDarkTheme) {
+                                Color.White.copy(alpha = 0.16f)
+                            } else {
+                                Color.Black.copy(alpha = 0.08f)
+                            }
+                        ),
+                        shadowElevation = 6.dp,
                         modifier = Modifier
                             .align(Alignment.TopEnd)
                             .padding(12.dp)
@@ -243,18 +255,19 @@ fun MainScreen(
                         Row(
                             verticalAlignment = Alignment.CenterVertically,
                             horizontalArrangement = Arrangement.Center,
-                            modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp)
+                            modifier = Modifier.padding(horizontal = 11.dp, vertical = 6.dp)
                         ) {
                             Icon(
-                                imageVector = Icons.Rounded.Shield,
+                                imageVector = FocusIcons.ShieldFilled,
                                 contentDescription = "Mode Fokus",
-                                modifier = Modifier.size(16.dp)
+                                modifier = Modifier.size(14.dp)
                             )
                             Spacer(modifier = Modifier.width(4.dp))
                             Text(
                                 text = preferences.activeFilterCount.toString(),
-                                style = MaterialTheme.typography.labelLarge,
-                                fontWeight = FontWeight.SemiBold
+                                style = MaterialTheme.typography.labelLarge.copy(
+                                    fontWeight = FontWeight.SemiBold
+                                )
                             )
                         }
                     }
@@ -281,6 +294,7 @@ fun MainScreen(
                 sessionElapsedSeconds = uiState.sessionElapsedSeconds,
                 blockedTrackersCount = uiState.blockedTrackersCount,
                 blockedDistractionsCount = uiState.blockedDistractionsCount,
+                isDarkTheme = isDarkTheme,
                 onDismiss = { viewModel.setFocusSheetVisible(false) },
                 onApplyPreset = { preset ->
                     viewModel.applyPreset(preset)
@@ -317,6 +331,7 @@ fun MainScreen(
         ) {
             SettingsScreen(
                 preferences = preferences,
+                isDarkTheme = isDarkTheme,
                 onNavigateBack = { viewModel.setSettingsScreenVisible(false) },
                 onThemeModeChange = viewModel::updateThemeMode,
                 onToggleNativeBottomBar = viewModel::toggleUseNativeBottomBar,

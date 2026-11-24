@@ -1,5 +1,6 @@
 package com.focusgram.client.ui
 
+import androidx.compose.runtime.Immutable
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
@@ -21,6 +22,7 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 
+@Immutable
 data class MainUiState(
     val currentUrl: String = InstagramUrlPolicy.HOME_URL,
     val currentSection: InstagramSection = InstagramSection.HOME,

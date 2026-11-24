@@ -1,14 +1,10 @@
 package com.focusgram.client.ui.theme
 
-import android.os.Build
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.darkColorScheme
-import androidx.compose.material3.dynamicDarkColorScheme
-import androidx.compose.material3.dynamicLightColorScheme
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
-import androidx.compose.ui.platform.LocalContext
 import com.focusgram.client.data.ThemeMode
 
 private val LightColorScheme = lightColorScheme(
@@ -31,7 +27,11 @@ private val LightColorScheme = lightColorScheme(
     surfaceVariant = SurfaceVariantLight,
     onSurfaceVariant = OnSurfaceVariantLight,
     outline = OutlineLight,
-    surfaceContainer = SurfaceContainerLight
+    error = IosRed,
+    onError = OnPrimaryLight,
+    surfaceContainer = SurfaceContainerLight,
+    surfaceContainerLow = BackgroundLight,
+    surfaceContainerHigh = SurfaceLight
 )
 
 private val DarkColorScheme = darkColorScheme(
@@ -54,7 +54,11 @@ private val DarkColorScheme = darkColorScheme(
     surfaceVariant = SurfaceVariantDark,
     onSurfaceVariant = OnSurfaceVariantDark,
     outline = OutlineDark,
-    surfaceContainer = SurfaceContainerDark
+    error = IosRedDark,
+    onError = OnPrimaryDark,
+    surfaceContainer = SurfaceContainerDark,
+    surfaceContainerLow = BackgroundDark,
+    surfaceContainerHigh = SurfaceVariantDark
 )
 
 private val AmoledColorScheme = DarkColorScheme.copy(
@@ -77,17 +81,12 @@ fun resolveDarkTheme(themeMode: ThemeMode): Boolean {
 @Composable
 fun FocusGramTheme(
     themeMode: ThemeMode,
-    dynamicColor: Boolean = true,
     content: @Composable () -> Unit
 ) {
     val isDark = resolveDarkTheme(themeMode)
-    val context = LocalContext.current
 
     val colorScheme = when {
         themeMode == ThemeMode.AMOLED -> AmoledColorScheme
-        dynamicColor && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S -> {
-            if (isDark) dynamicDarkColorScheme(context) else dynamicLightColorScheme(context)
-        }
         isDark -> DarkColorScheme
         else -> LightColorScheme
     }

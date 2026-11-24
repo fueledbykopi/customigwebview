@@ -1,5 +1,6 @@
 package com.focusgram.client.ui.components
 
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -11,10 +12,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.rounded.Refresh
-import androidx.compose.material.icons.rounded.WifiOff
 import androidx.compose.material3.Button
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -47,14 +44,19 @@ fun OfflineErrorOverlay(
             Surface(
                 shape = CircleShape,
                 color = MaterialTheme.colorScheme.surfaceContainer,
-                modifier = Modifier.size(84.dp)
+                border = BorderStroke(
+                    width = 0.5.dp,
+                    color = MaterialTheme.colorScheme.outline.copy(alpha = 0.22f)
+                ),
+                shadowElevation = 2.dp,
+                modifier = Modifier.size(80.dp)
             ) {
                 Box(contentAlignment = Alignment.Center) {
                     Icon(
-                        imageVector = Icons.Rounded.WifiOff,
+                        imageVector = FocusIcons.WifiSlash,
                         contentDescription = null,
                         tint = MaterialTheme.colorScheme.primary,
-                        modifier = Modifier.size(38.dp)
+                        modifier = Modifier.size(34.dp)
                     )
                 }
             }
@@ -64,6 +66,7 @@ fun OfflineErrorOverlay(
             Text(
                 text = if (isOnline) "Gagal Memuat Halaman" else "Anda Sedang Offline",
                 style = MaterialTheme.typography.titleLarge,
+                color = MaterialTheme.colorScheme.onBackground,
                 textAlign = TextAlign.Center
             )
 
@@ -80,12 +83,12 @@ fun OfflineErrorOverlay(
 
             Button(
                 onClick = onRetry,
-                shape = RoundedCornerShape(14.dp)
+                shape = CircleShape
             ) {
                 Icon(
-                    imageVector = Icons.Rounded.Refresh,
+                    imageVector = FocusIcons.Refresh,
                     contentDescription = null,
-                    modifier = Modifier.size(18.dp)
+                    modifier = Modifier.size(16.dp)
                 )
                 Spacer(modifier = Modifier.width(8.dp))
                 Text("Coba Lagi")

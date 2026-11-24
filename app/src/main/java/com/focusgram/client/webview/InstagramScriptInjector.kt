@@ -232,11 +232,11 @@ object InstagramScriptInjector {
                                 'suggested reels', 'reels yang disarankan',
                                 'threads', 'because you watched'
                             ];
-                            var articles = document.querySelectorAll('article');
+                            var articles = document.querySelectorAll('article:not([data-focusgram-checked="1"])');
                             for (var a = 0; a < articles.length; a++) {
                                 var art = articles[a];
+                                art.setAttribute('data-focusgram-checked', '1');
                                 if (art.getAttribute('data-focusgram-distraction') === 'true') continue;
-                                var headerText = '';
                                 var spans = art.querySelectorAll('span, div[dir="auto"]');
                                 var limit = Math.min(spans.length, 18);
                                 for (var s = 0; s < limit; s++) {
@@ -256,6 +256,9 @@ object InstagramScriptInjector {
                         } else {
                             document.querySelectorAll('[data-focusgram-distraction="true"]').forEach(function(el) {
                                 el.removeAttribute('data-focusgram-distraction');
+                            });
+                            document.querySelectorAll('[data-focusgram-checked="1"]').forEach(function(el) {
+                                el.removeAttribute('data-focusgram-checked');
                             });
                         }
 
@@ -374,13 +377,18 @@ object InstagramScriptInjector {
                         });
 
                         var debounceTimer = null;
-                        var observer = new MutationObserver(function() {
+                        var scheduleClean = function() {
                             if (debounceTimer) return;
                             debounceTimer = setTimeout(function() {
                                 debounceTimer = null;
-                                cleanDom();
-                            }, 220);
-                        });
+                                if (typeof window.requestIdleCallback === 'function') {
+                                    window.requestIdleCallback(cleanDom, { timeout: 350 });
+                                } else {
+                                    cleanDom();
+                                }
+                            }, 280);
+                        };
+                        var observer = new MutationObserver(scheduleClean);
 
                         if (document.body) {
                             observer.observe(document.body, { childList: true, subtree: true });

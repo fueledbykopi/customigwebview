@@ -119,13 +119,24 @@ class WebViewController {
         }
     }
 
+    fun trimMemory() {
+        // Clears in-memory WebView caches only (false = keep disk cache & login session intact)
+        webView?.clearCache(false)
+    }
+
     fun onPause() {
         runCatching { CookieManager.getInstance().flush() }
-        webView?.onPause()
+        webView?.let { wv ->
+            wv.onPause()
+            wv.pauseTimers()
+        }
     }
 
     fun onResume() {
-        webView?.onResume()
+        webView?.let { wv ->
+            wv.resumeTimers()
+            wv.onResume()
+        }
     }
 
     fun destroy() {
