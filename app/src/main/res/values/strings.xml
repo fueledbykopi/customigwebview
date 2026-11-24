@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">FocusGram</string>
+    <string name="app_tagline">Custom Instagram Client</string>
+    <string name="cd_refresh">Muat ulang halaman</string>
+    <string name="cd_focus_controls">Kontrol Mode Fokus</string>
+    <string name="cd_more_options">Opsi lainnya</string>
+    <string name="cd_back">Kembali</string>
+</resources>

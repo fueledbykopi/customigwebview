@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    <!-- Minimalist rounded camera frame -->
+    <path
+        android:fillColor="#00000000"
+        android:pathData="M36,28h36c4.42,0 8,3.58 8,8v36c0,4.42 -3.58,8 -8,8H36c-4.42,0 -8,-3.58 -8,-8V36c0,-4.42 3.58,-8 8,-8z"
+        android:strokeWidth="4.5"
+        android:strokeColor="#F8FAFC" />
+    <!-- Outer focus lens ring -->
+    <path
+        android:fillColor="#00000000"
+        android:pathData="M54,41a13,13 0 1,0 0,26a13,13 0 1,0 0,-26z"
+        android:strokeWidth="4.2"
+        android:strokeColor="#F472B6" />
+    <!-- Inner zen focus dot -->
+    <path
+        android:fillColor="#F8FAFC"
+        android:pathData="M54,50.5a3.5,3.5 0 1,0 0,7a3.5,3.5 0 1,0 0,-7z" />
+    <!-- Viewfinder accent dot -->
+    <path
+        android:fillColor="#FB923C"
+        android:pathData="M68,37a3,3 0 1,0 0,6a3,3 0 1,0 0,-6z" />
+</vector>
