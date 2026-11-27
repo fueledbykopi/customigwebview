@@ -10,6 +10,7 @@ object InstagramUrlPolicy {
 
     const val HOME_URL = "https://www.instagram.com/"
     const val EXPLORE_URL = "https://www.instagram.com/explore/"
+    const val REELS_URL = "https://www.instagram.com/reels/"
     const val DIRECT_URL = "https://www.instagram.com/direct/inbox/"
     const val ACTIVITY_URL = "https://www.instagram.com/accounts/activity/"
 
@@ -177,6 +178,7 @@ object InstagramUrlPolicy {
         val firstSegment = path.removePrefix("/").substringBefore("/")
         return when {
             firstSegment == "explore" -> InstagramSection.SEARCH
+            firstSegment == "reels" || firstSegment == "reel" -> InstagramSection.REELS
             firstSegment == "direct" -> InstagramSection.DIRECT
             path.startsWith("/accounts/activity") -> InstagramSection.ACTIVITY
             path.startsWith("/accounts/edit") -> InstagramSection.PROFILE

@@ -34,6 +34,8 @@ fun WebViewContainer(
     preferences: FocusPreferences,
     isDarkTheme: Boolean,
     isAmoled: Boolean,
+    isBackgroundTransparent: Boolean,
+    fallbackBackgroundColor: Int,
     onPageStarted: (String) -> Unit,
     onPageProgress: (Int) -> Unit,
     onPageFinished: (String, Boolean) -> Unit,
@@ -56,10 +58,13 @@ fun WebViewContainer(
     val latestPreferences by rememberUpdatedState(preferences)
     val latestIsDark by rememberUpdatedState(isDarkTheme)
     val latestIsAmoled by rememberUpdatedState(isAmoled)
+    val latestTransparent by rememberUpdatedState(isBackgroundTransparent)
+    val latestFallbackColor by rememberUpdatedState(fallbackBackgroundColor)
 
-    // Live-update injected CSS/JS, dark mode, and pull-to-refresh without recreating WebView
-    LaunchedEffect(preferences, isDarkTheme, isAmoled) {
+    // Live-update injected CSS/JS, dark mode, transparency, and pull-to-refresh without recreating WebView
+    LaunchedEffect(preferences, isDarkTheme, isAmoled, isBackgroundTransparent, fallbackBackgroundColor) {
         controller.applyDarkening(isDarkTheme)
+        controller.applyBackgroundTransparency(isBackgroundTransparent, fallbackBackgroundColor)
         controller.setPullToRefreshEnabled(preferences.enablePullToRefresh)
         controller.applyInjections(preferences, isDarkTheme, isAmoled)
     }
@@ -67,11 +72,13 @@ fun WebViewContainer(
     AndroidView(
         modifier = modifier,
         factory = { context ->
+            val initialBg = if (latestTransparent) Color.TRANSPARENT else latestFallbackColor
             val swipeRefresh = SwipeRefreshLayout(context).apply {
                 layoutParams = ViewGroup.LayoutParams(
                     ViewGroup.LayoutParams.MATCH_PARENT,
                     ViewGroup.LayoutParams.MATCH_PARENT
                 )
+                setBackgroundColor(initialBg)
                 isEnabled = latestPreferences.enablePullToRefresh
             }
 
@@ -80,7 +87,7 @@ fun WebViewContainer(
                     ViewGroup.LayoutParams.MATCH_PARENT,
                     ViewGroup.LayoutParams.MATCH_PARENT
                 )
-                setBackgroundColor(if (latestIsDark) Color.BLACK else Color.WHITE)
+                setBackgroundColor(initialBg)
                 overScrollMode = View.OVER_SCROLL_NEVER
                 isVerticalScrollBarEnabled = false
                 isHorizontalScrollBarEnabled = false

@@ -31,7 +31,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.scale
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
@@ -40,6 +39,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.focusgram.client.data.InstagramSection
+import com.focusgram.client.ui.theme.LocalFocusThemeTokens
 
 private data class NavTabItem(
     val section: InstagramSection,
@@ -48,87 +48,90 @@ private data class NavTabItem(
     val unselectedIcon: ImageVector
 )
 
-private val navTabs = listOf(
-    NavTabItem(
-        section = InstagramSection.HOME,
-        label = "Beranda",
-        selectedIcon = FocusIcons.HomeFilled,
-        unselectedIcon = FocusIcons.HomeOutline
-    ),
-    NavTabItem(
-        section = InstagramSection.SEARCH,
-        label = "Cari",
-        selectedIcon = FocusIcons.SearchFilled,
-        unselectedIcon = FocusIcons.SearchOutline
-    ),
-    NavTabItem(
-        section = InstagramSection.DIRECT,
-        label = "Pesan",
-        selectedIcon = FocusIcons.PaperplaneFilled,
-        unselectedIcon = FocusIcons.PaperplaneOutline
-    ),
-    NavTabItem(
-        section = InstagramSection.ACTIVITY,
-        label = "Aktivitas",
-        selectedIcon = FocusIcons.BellFilled,
-        unselectedIcon = FocusIcons.BellOutline
-    ),
-    NavTabItem(
-        section = InstagramSection.PROFILE,
-        label = "Profil",
-        selectedIcon = FocusIcons.PersonFilled,
-        unselectedIcon = FocusIcons.PersonOutline
+private fun buildNavTabs(showReels: Boolean): List<NavTabItem> {
+    val tabs = mutableListOf(
+        NavTabItem(
+            section = InstagramSection.HOME,
+            label = "Beranda",
+            selectedIcon = FocusIcons.HomeFilled,
+            unselectedIcon = FocusIcons.HomeOutline
+        ),
+        NavTabItem(
+            section = InstagramSection.SEARCH,
+            label = "Cari",
+            selectedIcon = FocusIcons.SearchFilled,
+            unselectedIcon = FocusIcons.SearchOutline
+        )
     )
-)
+    if (showReels) {
+        tabs.add(
+            NavTabItem(
+                section = InstagramSection.REELS,
+                label = "Reels",
+                selectedIcon = FocusIcons.ReelsPlayFilled,
+                unselectedIcon = FocusIcons.ReelsPlayOutline
+            )
+        )
+    }
+    tabs.add(
+        NavTabItem(
+            section = InstagramSection.DIRECT,
+            label = "Pesan",
+            selectedIcon = FocusIcons.PaperplaneFilled,
+            unselectedIcon = FocusIcons.PaperplaneOutline
+        )
+    )
+    if (!showReels) {
+        tabs.add(
+            NavTabItem(
+                section = InstagramSection.ACTIVITY,
+                label = "Aktivitas",
+                selectedIcon = FocusIcons.BellFilled,
+                unselectedIcon = FocusIcons.BellOutline
+            )
+        )
+    }
+    tabs.add(
+        NavTabItem(
+            section = InstagramSection.PROFILE,
+            label = "Profil",
+            selectedIcon = FocusIcons.PersonFilled,
+            unselectedIcon = FocusIcons.PersonOutline
+        )
+    )
+    return tabs
+}
 
 /**
- * Latest iOS Liquid-Glass inspired floating capsule dock.
- * Uses lightweight translucent surface + specular gradient + hairline border
- * (zero GPU RenderEffect blur overhead for 60-120fps & low memory).
+ * Latest iOS 26 Liquid-Glass floating capsule dock (optional — OFF by default).
+ * Dynamically includes the Reels tab when the user enables Reels.
  */
 @Composable
 fun FocusBottomNavBar(
     currentSection: InstagramSection,
     isDarkTheme: Boolean,
+    showReels: Boolean,
     onSelectSection: (InstagramSection) -> Unit,
     modifier: Modifier = Modifier
 ) {
     val haptic = LocalHapticFeedback.current
-    val dockShape = RoundedCornerShape(28.dp)
-
-    val glassBase = if (isDarkTheme) {
-        MaterialTheme.colorScheme.surface.copy(alpha = 0.90f)
-    } else {
-        Color.White.copy(alpha = 0.92f)
-    }
-    val glassBorder = if (isDarkTheme) {
-        Color.White.copy(alpha = 0.14f)
-    } else {
-        Color.Black.copy(alpha = 0.08f)
-    }
-    val topSpecular = if (isDarkTheme) {
-        Brush.verticalGradient(
-            colors = listOf(Color.White.copy(alpha = 0.08f), Color.Transparent)
-        )
-    } else {
-        Brush.verticalGradient(
-            colors = listOf(Color.White.copy(alpha = 0.70f), Color.Transparent)
-        )
-    }
+    val tokens = LocalFocusThemeTokens.current
+    val dockShape = RoundedCornerShape(tokens.dockCornerRadius)
+    val tabs = remember(showReels) { buildNavTabs(showReels) }
 
     Box(
         contentAlignment = Alignment.Center,
         modifier = modifier
             .fillMaxWidth()
-            .background(MaterialTheme.colorScheme.background)
+            .background(Color.Transparent)
             .navigationBarsPadding()
-            .padding(horizontal = 14.dp, vertical = 6.dp)
+            .padding(horizontal = 14.dp, vertical = 8.dp)
     ) {
         Surface(
             shape = dockShape,
-            color = glassBase,
-            border = BorderStroke(0.6.dp, glassBorder),
-            shadowElevation = if (isDarkTheme) 6.dp else 8.dp,
+            color = tokens.glassElevated,
+            border = BorderStroke(0.95.dp, tokens.specularBorderBrush),
+            shadowElevation = if (isDarkTheme) 10.dp else 12.dp,
             modifier = Modifier.fillMaxWidth()
         ) {
             Row(
@@ -136,15 +139,15 @@ fun FocusBottomNavBar(
                 horizontalArrangement = Arrangement.SpaceEvenly,
                 modifier = Modifier
                     .fillMaxWidth()
-                    .background(topSpecular)
+                    .background(tokens.topSheenBrush)
                     .padding(horizontal = 6.dp, vertical = 5.dp)
             ) {
-                navTabs.forEach { tab ->
+                tabs.forEach { tab ->
                     val selected = currentSection == tab.section
                     val scale by animateFloatAsState(
-                        targetValue = if (selected) 1.04f else 1f,
+                        targetValue = if (selected) 1.05f else 1f,
                         animationSpec = spring(
-                            dampingRatio = 0.65f,
+                            dampingRatio = 0.62f,
                             stiffness = Spring.StiffnessMediumLow
                         ),
                         label = "tab_scale"
@@ -161,7 +164,7 @@ fun FocusBottomNavBar(
                     val pillColor by animateColorAsState(
                         targetValue = if (selected) {
                             MaterialTheme.colorScheme.primary.copy(
-                                alpha = if (isDarkTheme) 0.16f else 0.10f
+                                alpha = if (isDarkTheme) 0.20f else 0.13f
                             )
                         } else {
                             Color.Transparent
@@ -175,7 +178,7 @@ fun FocusBottomNavBar(
                         verticalArrangement = Arrangement.Center,
                         modifier = Modifier
                             .weight(1f)
-                            .clip(RoundedCornerShape(22.dp))
+                            .clip(RoundedCornerShape(tokens.dockCornerRadius - 6.dp))
                             .background(pillColor)
                             .clickable(
                                 interactionSource = remember { MutableInteractionSource() },

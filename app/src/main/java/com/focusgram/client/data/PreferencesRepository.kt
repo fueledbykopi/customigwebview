@@ -6,6 +6,7 @@ import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.emptyPreferences
+import androidx.datastore.preferences.core.floatPreferencesKey
 import androidx.datastore.preferences.core.intPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
@@ -35,7 +36,12 @@ class PreferencesRepository(private val context: Context) {
         val ENABLE_PULL_TO_REFRESH = booleanPreferencesKey("enable_pull_to_refresh")
         val OPEN_EXTERNAL_CUSTOM_TABS = booleanPreferencesKey("open_external_custom_tabs")
         val THEME_MODE = stringPreferencesKey("theme_mode")
+        val APP_THEME_STYLE = stringPreferencesKey("app_theme_style")
         val SESSION_LIMIT_MINUTES = intPreferencesKey("session_limit_minutes")
+        val CHAT_BACKGROUND_PATH = stringPreferencesKey("chat_background_path")
+        val TIMELINE_BACKGROUND_PATH = stringPreferencesKey("timeline_background_path")
+        val CUSTOM_APP_ICON_PATH = stringPreferencesKey("custom_app_icon_path")
+        val BACKGROUND_DIM_OPACITY = floatPreferencesKey("background_dim_opacity")
     }
 
     val preferencesFlow: Flow<FocusPreferences> = context.focusDataStore.data
@@ -51,6 +57,10 @@ class PreferencesRepository(private val context: Context) {
             val themeMode = runCatching { ThemeMode.valueOf(themeName) }
                 .getOrDefault(ThemeMode.SYSTEM)
 
+            val styleName = prefs[Keys.APP_THEME_STYLE] ?: AppThemeStyle.LIQUID_GLASS.name
+            val appThemeStyle = runCatching { AppThemeStyle.valueOf(styleName) }
+                .getOrDefault(AppThemeStyle.LIQUID_GLASS)
+
             FocusPreferences(
                 hideOpenInAppPrompts = prefs[Keys.HIDE_OPEN_IN_APP] ?: true,
                 hideReels = prefs[Keys.HIDE_REELS] ?: true,
@@ -61,12 +71,18 @@ class PreferencesRepository(private val context: Context) {
                 autoMuteVideos = prefs[Keys.AUTO_MUTE_VIDEOS] ?: false,
                 grayscaleMode = prefs[Keys.GRAYSCALE_MODE] ?: false,
                 blockTrackers = prefs[Keys.BLOCK_TRACKERS] ?: true,
-                useNativeBottomBar = prefs[Keys.USE_NATIVE_BOTTOM_BAR] ?: true,
+                useNativeBottomBar = prefs[Keys.USE_NATIVE_BOTTOM_BAR] ?: false,
                 showTopBar = prefs[Keys.SHOW_TOP_BAR] ?: true,
                 enablePullToRefresh = prefs[Keys.ENABLE_PULL_TO_REFRESH] ?: true,
                 openExternalInCustomTabs = prefs[Keys.OPEN_EXTERNAL_CUSTOM_TABS] ?: true,
                 themeMode = themeMode,
-                sessionLimitMinutes = prefs[Keys.SESSION_LIMIT_MINUTES] ?: 0
+                appThemeStyle = appThemeStyle,
+                sessionLimitMinutes = prefs[Keys.SESSION_LIMIT_MINUTES] ?: 0,
+                chatBackgroundPath = prefs[Keys.CHAT_BACKGROUND_PATH] ?: "",
+                timelineBackgroundPath = prefs[Keys.TIMELINE_BACKGROUND_PATH] ?: "",
+                customAppIconPath = prefs[Keys.CUSTOM_APP_ICON_PATH] ?: "",
+                backgroundDimOpacity = (prefs[Keys.BACKGROUND_DIM_OPACITY] ?: 0.34f)
+                    .coerceIn(0f, 0.78f)
             )
         }
 
@@ -126,8 +142,28 @@ class PreferencesRepository(private val context: Context) {
         context.focusDataStore.edit { it[Keys.THEME_MODE] = mode.name }
     }
 
+    suspend fun updateAppThemeStyle(style: AppThemeStyle) {
+        context.focusDataStore.edit { it[Keys.APP_THEME_STYLE] = style.name }
+    }
+
     suspend fun updateSessionLimitMinutes(minutes: Int) {
         context.focusDataStore.edit { it[Keys.SESSION_LIMIT_MINUTES] = minutes.coerceAtLeast(0) }
+    }
+
+    suspend fun updateChatBackgroundPath(path: String) {
+        context.focusDataStore.edit { it[Keys.CHAT_BACKGROUND_PATH] = path }
+    }
+
+    suspend fun updateTimelineBackgroundPath(path: String) {
+        context.focusDataStore.edit { it[Keys.TIMELINE_BACKGROUND_PATH] = path }
+    }
+
+    suspend fun updateCustomAppIconPath(path: String) {
+        context.focusDataStore.edit { it[Keys.CUSTOM_APP_ICON_PATH] = path }
+    }
+
+    suspend fun updateBackgroundDimOpacity(opacity: Float) {
+        context.focusDataStore.edit { it[Keys.BACKGROUND_DIM_OPACITY] = opacity.coerceIn(0f, 0.78f) }
     }
 
     suspend fun applyPreset(preset: FocusPreset) {

@@ -57,6 +57,8 @@ class InstagramUrlPolicyTest {
     fun `detectSection maps routes to native navigation tabs`() {
         assertEquals(InstagramSection.HOME, InstagramUrlPolicy.detectSection("https://www.instagram.com/"))
         assertEquals(InstagramSection.SEARCH, InstagramUrlPolicy.detectSection("https://www.instagram.com/explore/"))
+        assertEquals(InstagramSection.REELS, InstagramUrlPolicy.detectSection("https://www.instagram.com/reels/"))
+        assertEquals(InstagramSection.REELS, InstagramUrlPolicy.detectSection("https://www.instagram.com/reel/CxYz123/"))
         assertEquals(InstagramSection.DIRECT, InstagramUrlPolicy.detectSection("https://www.instagram.com/direct/inbox/"))
         assertEquals(InstagramSection.ACTIVITY, InstagramUrlPolicy.detectSection("https://www.instagram.com/accounts/activity/"))
         assertEquals(InstagramSection.PROFILE, InstagramUrlPolicy.detectSection("https://www.instagram.com/androiddev/"))

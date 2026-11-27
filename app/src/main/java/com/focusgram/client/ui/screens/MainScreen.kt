@@ -1,5 +1,6 @@
 package com.focusgram.client.ui.screens
 
+import android.graphics.Bitmap
 import android.net.Uri
 import android.view.View
 import android.webkit.ValueCallback
@@ -11,6 +12,7 @@ import androidx.compose.animation.fadeOut
 import androidx.compose.animation.slideInHorizontally
 import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -40,6 +42,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableLongStateOf
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
@@ -47,10 +50,16 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.StrokeCap
+import androidx.compose.ui.graphics.asImageBitmap
+import androidx.compose.ui.graphics.toArgb
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.focusgram.client.data.CustomMediaManager
+import com.focusgram.client.data.CustomMediaTarget
+import com.focusgram.client.data.InstagramSection
 import com.focusgram.client.data.ThemeMode
 import com.focusgram.client.ui.FocusGramViewModel
 import com.focusgram.client.ui.components.FocusBottomNavBar
@@ -59,7 +68,9 @@ import com.focusgram.client.ui.components.FocusIcons
 import com.focusgram.client.ui.components.FocusTopBar
 import com.focusgram.client.ui.components.MindfulBreakDialog
 import com.focusgram.client.ui.components.OfflineErrorOverlay
+import com.focusgram.client.ui.components.PhotoCropperOverlay
 import com.focusgram.client.ui.components.WebViewContainer
+import com.focusgram.client.ui.theme.LocalFocusThemeTokens
 import com.focusgram.client.ui.theme.resolveDarkTheme
 import com.focusgram.client.webview.WebViewController
 import kotlinx.coroutines.launch
@@ -70,6 +81,19 @@ fun MainScreen(
     viewModel: FocusGramViewModel,
     webViewController: WebViewController,
     fullscreenView: View?,
+    cropTarget: CustomMediaTarget?,
+    cropSourceBitmap: Bitmap?,
+    isSavingCrop: Boolean,
+    onPickCustomMedia: (CustomMediaTarget) -> Unit,
+    onCancelCrop: () -> Unit,
+    onConfirmCrop: (
+        scale: Float,
+        offsetX: Float,
+        offsetY: Float,
+        frameWidth: Float,
+        frameHeight: Float
+    ) -> Unit,
+    onPinCustomAppIcon: (Bitmap) -> Unit,
     onExitFullscreen: () -> Unit,
     onOpenExternalUrl: (url: String, useCustomTabs: Boolean) -> Unit,
     onOpenExternalUri: (Uri) -> Unit,
@@ -82,12 +106,41 @@ fun MainScreen(
 ) {
     val preferences by viewModel.preferences.collectAsStateWithLifecycle()
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
-    val isDarkTheme = resolveDarkTheme(preferences.themeMode)
+    val isDarkTheme = resolveDarkTheme(preferences.themeMode, preferences.appThemeStyle)
     val isAmoled = preferences.themeMode == ThemeMode.AMOLED
+    val tokens = LocalFocusThemeTokens.current
 
     val snackbarHostState = remember { SnackbarHostState() }
     val coroutineScope = rememberCoroutineScope()
     var lastBackPressTime by remember { mutableLongStateOf(0L) }
+
+    // Reactive custom photo bitmaps loaded off the main thread
+    var chatBgBitmap by remember { mutableStateOf<Bitmap?>(null) }
+    var timelineBgBitmap by remember { mutableStateOf<Bitmap?>(null) }
+    var customAppIconBitmap by remember { mutableStateOf<Bitmap?>(null) }
+
+    LaunchedEffect(preferences.chatBackgroundPath) {
+        chatBgBitmap = CustomMediaManager.loadBitmapFromPath(preferences.chatBackgroundPath)
+    }
+    LaunchedEffect(preferences.timelineBackgroundPath) {
+        timelineBgBitmap = CustomMediaManager.loadBitmapFromPath(preferences.timelineBackgroundPath)
+    }
+    LaunchedEffect(preferences.customAppIconPath) {
+        customAppIconBitmap = CustomMediaManager.loadBitmapFromPath(preferences.customAppIconPath)
+    }
+
+    val isChatSection = uiState.currentSection == InstagramSection.DIRECT
+    val isTimelineSection = !isChatSection &&
+        !uiState.isAuthRoute &&
+        uiState.currentSection != InstagramSection.REELS
+
+    val activeCustomBg: Bitmap? = when {
+        isChatSection && chatBgBitmap != null -> chatBgBitmap
+        isTimelineSection && timelineBgBitmap != null -> timelineBgBitmap
+        else -> null
+    }
+    val activeBgImage = remember(activeCustomBg) { activeCustomBg?.asImageBitmap() }
+    val fallbackBgColorInt = MaterialTheme.colorScheme.background.toArgb()
 
     fun showMessage(message: String) {
         coroutineScope.launch {
@@ -111,6 +164,9 @@ fun MainScreen(
     BackHandler {
         when {
             fullscreenView != null -> onExitFullscreen()
+            cropSourceBitmap != null && cropTarget != null -> {
+                if (!isSavingCrop) onCancelCrop()
+            }
             uiState.showSettingsScreen -> viewModel.setSettingsScreenVisible(false)
             uiState.showFocusSheet -> viewModel.setFocusSheetVisible(false)
             webViewController.goBack() -> Unit
@@ -127,9 +183,31 @@ fun MainScreen(
     }
 
     Box(modifier = Modifier.fillMaxSize()) {
+        // Active custom photo canvas behind edge-to-edge Liquid Glass chrome & WebView
+        if (activeBgImage != null) {
+            Image(
+                bitmap = activeBgImage,
+                contentDescription = null,
+                contentScale = ContentScale.Crop,
+                modifier = Modifier.fillMaxSize()
+            )
+            val scrimBase = if (isDarkTheme) Color.Black else Color.White
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(scrimBase.copy(alpha = preferences.backgroundDimOpacity))
+            )
+        } else {
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(MaterialTheme.colorScheme.background)
+            )
+        }
+
         Scaffold(
             modifier = Modifier.fillMaxSize(),
-            containerColor = MaterialTheme.colorScheme.background,
+            containerColor = Color.Transparent,
             contentWindowInsets = WindowInsets(0, 0, 0, 0),
             snackbarHost = { SnackbarHost(hostState = snackbarHostState) },
             topBar = {
@@ -141,6 +219,7 @@ fun MainScreen(
                         loadingProgress = uiState.loadingProgress,
                         activeFilterCount = preferences.activeFilterCount,
                         isDarkTheme = isDarkTheme,
+                        customAppIcon = customAppIconBitmap,
                         onBackClick = { webViewController.goBack() },
                         onTitleClick = { webViewController.scrollToTop() },
                         onFocusControlsClick = { viewModel.setFocusSheetVisible(true) },
@@ -165,6 +244,7 @@ fun MainScreen(
                     FocusBottomNavBar(
                         currentSection = uiState.currentSection,
                         isDarkTheme = isDarkTheme,
+                        showReels = preferences.showReels,
                         onSelectSection = { section ->
                             viewModel.clearError()
                             webViewController.navigateToSection(section, uiState.currentSection)
@@ -195,6 +275,8 @@ fun MainScreen(
                     preferences = preferences,
                     isDarkTheme = isDarkTheme,
                     isAmoled = isAmoled,
+                    isBackgroundTransparent = activeBgImage != null,
+                    fallbackBackgroundColor = fallbackBgColorInt,
                     onPageStarted = { url -> viewModel.onPageStarted(url) },
                     onPageProgress = { progress -> viewModel.onPageProgress(progress) },
                     onPageFinished = { url, canGoBack -> viewModel.onPageFinished(url, canGoBack) },
@@ -214,7 +296,7 @@ fun MainScreen(
                     onTrackerBlocked = { viewModel.onTrackerBlocked() },
                     onDistractionBlocked = { count -> viewModel.onDistractionBlocked(count) },
                     onReelsBlocked = {
-                        showMessage("Reels disembunyikan oleh Mode Fokus")
+                        showMessage("Reels disembunyikan. Aktifkan 'Tampilkan Reels' di Pengaturan atau Mode Fokus.")
                     },
                     modifier = Modifier.fillMaxSize()
                 )
@@ -237,17 +319,13 @@ fun MainScreen(
                     Surface(
                         onClick = { viewModel.setFocusSheetVisible(true) },
                         shape = CircleShape,
-                        color = MaterialTheme.colorScheme.surface.copy(alpha = 0.88f),
+                        color = tokens.glassElevated,
                         contentColor = MaterialTheme.colorScheme.primary,
                         border = BorderStroke(
-                            width = 0.6.dp,
-                            color = if (isDarkTheme) {
-                                Color.White.copy(alpha = 0.16f)
-                            } else {
-                                Color.Black.copy(alpha = 0.08f)
-                            }
+                            width = 0.85.dp,
+                            brush = tokens.specularBorderBrush
                         ),
-                        shadowElevation = 6.dp,
+                        shadowElevation = 8.dp,
                         modifier = Modifier
                             .align(Alignment.TopEnd)
                             .padding(12.dp)
@@ -332,8 +410,33 @@ fun MainScreen(
             SettingsScreen(
                 preferences = preferences,
                 isDarkTheme = isDarkTheme,
+                chatBgPreview = chatBgBitmap,
+                timelineBgPreview = timelineBgBitmap,
+                customAppIconPreview = customAppIconBitmap,
                 onNavigateBack = { viewModel.setSettingsScreenVisible(false) },
+                onAppThemeStyleChange = { style ->
+                    viewModel.updateAppThemeStyle(style)
+                    showMessage("Tema '${style.label}' diterapkan")
+                },
                 onThemeModeChange = viewModel::updateThemeMode,
+                onPickCustomMedia = onPickCustomMedia,
+                onClearCustomMedia = { target ->
+                    viewModel.clearCustomMedia(target)
+                    showMessage("${target.title} direset ke bawaan")
+                },
+                onPinCustomAppIcon = {
+                    val iconBmp = customAppIconBitmap
+                    if (iconBmp != null) {
+                        onPinCustomAppIcon(iconBmp)
+                    } else {
+                        showMessage("Pilih foto ikon terlebih dahulu")
+                    }
+                },
+                onBackgroundDimChange = viewModel::updateBackgroundDimOpacity,
+                onToggleShowReels = { show ->
+                    viewModel.toggleHideReels(!show)
+                    showMessage(if (show) "Reels ditampilkan" else "Reels disembunyikan")
+                },
                 onToggleNativeBottomBar = viewModel::toggleUseNativeBottomBar,
                 onToggleShowTopBar = viewModel::toggleShowTopBar,
                 onTogglePullToRefresh = viewModel::togglePullToRefresh,
@@ -350,6 +453,17 @@ fun MainScreen(
                         showMessage("Data sesi & cookie berhasil dihapus")
                     }
                 }
+            )
+        }
+
+        // Full-Screen Pinch-to-Zoom Photo Cropper Overlay
+        if (cropSourceBitmap != null && cropTarget != null) {
+            PhotoCropperOverlay(
+                bitmap = cropSourceBitmap,
+                target = cropTarget,
+                isSaving = isSavingCrop,
+                onCancel = onCancelCrop,
+                onConfirmCrop = onConfirmCrop
             )
         }
 

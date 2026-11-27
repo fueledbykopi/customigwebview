@@ -606,4 +606,155 @@ object FocusIcons {
             curveTo(15.7f, 6f, 18.5f, 7.2f, 20.8f, 9.2f)
         }
     }
+
+    val ReelsPlayOutline: ImageVector by lazy {
+        strokeIcon("ReelsPlayOutline") {
+            moveTo(5.2f, 4.5f)
+            horizontalLineTo(18.8f)
+            curveTo(19.9f, 4.5f, 20.8f, 5.4f, 20.8f, 6.5f)
+            verticalLineTo(17.5f)
+            curveTo(20.8f, 18.6f, 19.9f, 19.5f, 18.8f, 19.5f)
+            horizontalLineTo(5.2f)
+            curveTo(4.1f, 19.5f, 3.2f, 18.6f, 3.2f, 17.5f)
+            verticalLineTo(6.5f)
+            curveTo(3.2f, 5.4f, 4.1f, 4.5f, 5.2f, 4.5f)
+            close()
+            moveTo(3.5f, 8.8f)
+            horizontalLineTo(20.5f)
+            moveTo(8.5f, 4.5f)
+            lineTo(10.5f, 8.8f)
+            moveTo(14.5f, 4.5f)
+            lineTo(16.5f, 8.8f)
+            moveTo(10.2f, 11.4f)
+            lineTo(15.2f, 14.1f)
+            lineTo(10.2f, 16.8f)
+            close()
+        }
+    }
+
+    val ReelsPlayFilled: ImageVector by lazy {
+        ImageVector.Builder(
+            name = "ReelsPlayFilled",
+            defaultWidth = 24.dp,
+            defaultHeight = 24.dp,
+            viewportWidth = 24f,
+            viewportHeight = 24f
+        ).apply {
+            path(
+                fill = SolidColor(Color.Black),
+                pathFillType = PathFillType.EvenOdd
+            ) {
+                moveTo(5.5f, 4f)
+                horizontalLineTo(18.5f)
+                curveTo(20f, 4f, 21f, 5f, 21f, 6.5f)
+                verticalLineTo(17.5f)
+                curveTo(21f, 19f, 20f, 20f, 18.5f, 20f)
+                horizontalLineTo(5.5f)
+                curveTo(4f, 20f, 3f, 19f, 3f, 17.5f)
+                verticalLineTo(6.5f)
+                curveTo(3f, 5f, 4f, 4f, 5.5f, 4f)
+                close()
+                moveTo(10f, 9f)
+                verticalLineTo(15f)
+                lineTo(15.6f, 12f)
+                close()
+            }
+        }.build()
+    }
+
+    val Photo: ImageVector by lazy {
+        strokeIcon("Photo") {
+            moveTo(5f, 4.5f)
+            horizontalLineTo(19f)
+            curveTo(20f, 4.5f, 20.8f, 5.3f, 20.8f, 6.3f)
+            verticalLineTo(17.7f)
+            curveTo(20.8f, 18.7f, 20f, 19.5f, 19f, 19.5f)
+            horizontalLineTo(5f)
+            curveTo(4f, 19.5f, 3.2f, 18.7f, 3.2f, 17.7f)
+            verticalLineTo(6.3f)
+            curveTo(3.2f, 5.3f, 4f, 4.5f, 5f, 4.5f)
+            close()
+            moveTo(8.4f, 8.2f)
+            arcTo(1.4f, 1.4f, 0f, true, false, 8.4f, 11f)
+            arcTo(1.4f, 1.4f, 0f, true, false, 8.4f, 8.2f)
+            moveTo(4.2f, 17.2f)
+            lineTo(9.2f, 12.4f)
+            lineTo(12.8f, 15.6f)
+            lineTo(15.6f, 13f)
+            lineTo(19.8f, 17.2f)
+        }
+    }
+
+    val Palette: ImageVector by lazy {
+        strokeIcon("Palette") {
+            moveTo(12f, 3.5f)
+            curveTo(7.3f, 3.5f, 3.5f, 7.2f, 3.5f, 11.8f)
+            curveTo(3.5f, 16.4f, 7.2f, 20.2f, 11.8f, 20.2f)
+            curveTo(13.2f, 20.2f, 14.3f, 19.2f, 14.3f, 17.9f)
+            curveTo(14.3f, 17.3f, 14.1f, 16.8f, 13.7f, 16.4f)
+            curveTo(13.4f, 16f, 13.2f, 15.5f, 13.2f, 15f)
+            curveTo(13.2f, 14.1f, 13.9f, 13.4f, 14.8f, 13.4f)
+            horizontalLineTo(16.7f)
+            curveTo(18.8f, 13.4f, 20.5f, 11.7f, 20.5f, 9.6f)
+            curveTo(20.5f, 6.2f, 16.7f, 3.5f, 12f, 3.5f)
+            close()
+            moveTo(7.5f, 11.5f)
+            verticalLineTo(11.6f)
+            moveTo(9.5f, 7.8f)
+            verticalLineTo(7.9f)
+            moveTo(14.2f, 7.8f)
+            verticalLineTo(7.9f)
+            moveTo(16.8f, 10.2f)
+            verticalLineTo(10.3f)
+        }
+    }
+
+    val AppGrid: ImageVector by lazy {
+        strokeIcon("AppGrid") {
+            moveTo(4.5f, 4.5f)
+            horizontalLineTo(10.5f)
+            verticalLineTo(10.5f)
+            horizontalLineTo(4.5f)
+            close()
+            moveTo(13.5f, 4.5f)
+            horizontalLineTo(19.5f)
+            verticalLineTo(10.5f)
+            horizontalLineTo(13.5f)
+            close()
+            moveTo(4.5f, 13.5f)
+            horizontalLineTo(10.5f)
+            verticalLineTo(19.5f)
+            horizontalLineTo(4.5f)
+            close()
+            moveTo(13.5f, 13.5f)
+            horizontalLineTo(19.5f)
+            verticalLineTo(19.5f)
+            horizontalLineTo(13.5f)
+            close()
+        }
+    }
+
+    val Check: ImageVector by lazy {
+        strokeIcon("Check", strokeWidth = 2.4f) {
+            moveTo(4.8f, 12.6f)
+            lineTo(9.6f, 17.4f)
+            lineTo(19.2f, 7.2f)
+        }
+    }
+
+    val ChatBubble: ImageVector by lazy {
+        strokeIcon("ChatBubble") {
+            moveTo(4.5f, 6.2f)
+            curveTo(4.5f, 4.9f, 5.5f, 4f, 6.8f, 4f)
+            horizontalLineTo(17.2f)
+            curveTo(18.5f, 4f, 19.5f, 4.9f, 19.5f, 6.2f)
+            verticalLineTo(14.4f)
+            curveTo(19.5f, 15.7f, 18.5f, 16.6f, 17.2f, 16.6f)
+            horizontalLineTo(9.6f)
+            lineTo(5.2f, 20f)
+            verticalLineTo(16.6f)
+            curveTo(4.7f, 16.2f, 4.5f, 15.4f, 4.5f, 14.4f)
+            close()
+        }
+    }
 }

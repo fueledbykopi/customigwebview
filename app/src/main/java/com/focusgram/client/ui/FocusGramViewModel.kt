@@ -4,6 +4,9 @@ import androidx.compose.runtime.Immutable
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
+import com.focusgram.client.data.AppThemeStyle
+import com.focusgram.client.data.CustomMediaManager
+import com.focusgram.client.data.CustomMediaTarget
 import com.focusgram.client.data.FocusPreferences
 import com.focusgram.client.data.FocusPreset
 import com.focusgram.client.data.InstagramSection
@@ -269,8 +272,34 @@ class FocusGramViewModel(
         preferencesRepository.updateThemeMode(mode)
     }
 
+    fun updateAppThemeStyle(style: AppThemeStyle) = viewModelScope.launch {
+        preferencesRepository.updateAppThemeStyle(style)
+    }
+
     fun updateSessionLimitMinutes(minutes: Int) = viewModelScope.launch {
         preferencesRepository.updateSessionLimitMinutes(minutes)
+    }
+
+    fun updateCustomMediaPath(target: CustomMediaTarget, path: String) = viewModelScope.launch {
+        when (target) {
+            CustomMediaTarget.CHAT_BACKGROUND -> preferencesRepository.updateChatBackgroundPath(path)
+            CustomMediaTarget.TIMELINE_BACKGROUND -> preferencesRepository.updateTimelineBackgroundPath(path)
+            CustomMediaTarget.APP_ICON -> preferencesRepository.updateCustomAppIconPath(path)
+        }
+    }
+
+    fun clearCustomMedia(target: CustomMediaTarget) = viewModelScope.launch {
+        val currentPath = when (target) {
+            CustomMediaTarget.CHAT_BACKGROUND -> preferences.value.chatBackgroundPath
+            CustomMediaTarget.TIMELINE_BACKGROUND -> preferences.value.timelineBackgroundPath
+            CustomMediaTarget.APP_ICON -> preferences.value.customAppIconPath
+        }
+        updateCustomMediaPath(target, "")
+        CustomMediaManager.deleteFile(currentPath)
+    }
+
+    fun updateBackgroundDimOpacity(opacity: Float) = viewModelScope.launch {
+        preferencesRepository.updateBackgroundDimOpacity(opacity)
     }
 
     fun applyPreset(preset: FocusPreset) = viewModelScope.launch {

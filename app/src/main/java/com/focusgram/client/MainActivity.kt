@@ -5,6 +5,7 @@ import android.content.ClipData
 import android.content.ClipboardManager
 import android.content.Context
 import android.content.Intent
+import android.graphics.Bitmap
 import android.net.Uri
 import android.os.Bundle
 import android.os.Environment
@@ -30,12 +31,16 @@ import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.WindowInsetsControllerCompat
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.lifecycle.lifecycleScope
+import com.focusgram.client.data.CustomMediaManager
+import com.focusgram.client.data.CustomMediaTarget
 import com.focusgram.client.domain.InstagramUrlPolicy
 import com.focusgram.client.ui.FocusGramViewModel
 import com.focusgram.client.ui.screens.MainScreen
 import com.focusgram.client.ui.theme.FocusGramTheme
 import com.focusgram.client.ui.theme.resolveDarkTheme
 import com.focusgram.client.webview.WebViewController
+import kotlinx.coroutines.launch
 
 class MainActivity : ComponentActivity() {
 
@@ -58,6 +63,12 @@ class MainActivity : ComponentActivity() {
     private var fullscreenViewState by mutableStateOf<View?>(null)
     private var fullscreenCustomViewCallback: WebChromeClient.CustomViewCallback? = null
 
+    // Custom photo background & app icon cropper state
+    private var pendingMediaTarget: CustomMediaTarget? = null
+    private var cropTargetState by mutableStateOf<CustomMediaTarget?>(null)
+    private var cropSourceBitmapState by mutableStateOf<Bitmap?>(null)
+    private var isSavingCropState by mutableStateOf(false)
+
     private val fileChooserLauncher = registerForActivityResult(
         ActivityResultContracts.StartActivityForResult()
     ) { result ->
@@ -78,6 +89,28 @@ class MainActivity : ComponentActivity() {
         callback.onReceiveValue(uris)
     }
 
+    private val customPhotoPickerLauncher = registerForActivityResult(
+        ActivityResultContracts.GetContent()
+    ) { uri: Uri? ->
+        val target = pendingMediaTarget
+        pendingMediaTarget = null
+        if (uri == null || target == null) return@registerForActivityResult
+
+        lifecycleScope.launch {
+            val decoded = CustomMediaManager.decodeBitmapFromUri(this@MainActivity, uri)
+            if (decoded != null) {
+                cropTargetState = target
+                cropSourceBitmapState = decoded
+            } else {
+                Toast.makeText(
+                    this@MainActivity,
+                    "Gagal memuat foto yang dipilih",
+                    Toast.LENGTH_SHORT
+                ).show()
+            }
+        }
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         installSplashScreen()
         super.onCreate(savedInstanceState)
@@ -86,7 +119,7 @@ class MainActivity : ComponentActivity() {
 
         setContent {
             val preferences by viewModel.preferences.collectAsStateWithLifecycle()
-            val isDark = resolveDarkTheme(preferences.themeMode)
+            val isDark = resolveDarkTheme(preferences.themeMode, preferences.appThemeStyle)
 
             LaunchedEffect(isDark) {
                 enableEdgeToEdge(
@@ -109,12 +142,22 @@ class MainActivity : ComponentActivity() {
                 )
             }
 
-            FocusGramTheme(themeMode = preferences.themeMode) {
+            FocusGramTheme(
+                themeMode = preferences.themeMode,
+                appThemeStyle = preferences.appThemeStyle
+            ) {
                 MainScreen(
                     initialUrl = startUrl,
                     viewModel = viewModel,
                     webViewController = webViewController,
                     fullscreenView = fullscreenViewState,
+                    cropTarget = cropTargetState,
+                    cropSourceBitmap = cropSourceBitmapState,
+                    isSavingCrop = isSavingCropState,
+                    onPickCustomMedia = ::launchCustomPhotoPicker,
+                    onCancelCrop = ::dismissCropper,
+                    onConfirmCrop = ::confirmAndSaveCroppedPhoto,
+                    onPinCustomAppIcon = ::pinCustomAppIcon,
                     onExitFullscreen = ::exitFullscreenVideo,
                     onOpenExternalUrl = ::openExternalUrl,
                     onOpenExternalUri = ::openExternalUri,
@@ -163,9 +206,97 @@ class MainActivity : ComponentActivity() {
     override fun onDestroy() {
         pendingFilePathCallback?.onReceiveValue(null)
         pendingFilePathCallback = null
+        dismissCropper()
         exitFullscreenVideo()
         webViewController.destroy()
         super.onDestroy()
+    }
+
+    private fun launchCustomPhotoPicker(target: CustomMediaTarget) {
+        pendingMediaTarget = target
+        runCatching {
+            customPhotoPickerLauncher.launch("image/*")
+        }.onFailure {
+            pendingMediaTarget = null
+            Toast.makeText(this, "Gagal membuka galeri foto", Toast.LENGTH_SHORT).show()
+        }
+    }
+
+    private fun dismissCropper() {
+        cropTargetState = null
+        cropSourceBitmapState = null
+        isSavingCropState = false
+    }
+
+    private fun confirmAndSaveCroppedPhoto(
+        scale: Float,
+        offsetX: Float,
+        offsetY: Float,
+        frameWidth: Float,
+        frameHeight: Float
+    ) {
+        val target = cropTargetState ?: return
+        val source = cropSourceBitmapState ?: return
+        if (isSavingCropState) return
+
+        isSavingCropState = true
+        lifecycleScope.launch {
+            val savedPath = CustomMediaManager.cropAndSave(
+                context = this@MainActivity,
+                sourceBitmap = source,
+                target = target,
+                scale = scale,
+                offsetX = offsetX,
+                offsetY = offsetY,
+                frameWidth = frameWidth,
+                frameHeight = frameHeight
+            )
+            if (!savedPath.isNullOrBlank()) {
+                viewModel.updateCustomMediaPath(target, savedPath)
+                dismissCropper()
+                if (target == CustomMediaTarget.APP_ICON) {
+                    val savedIcon = CustomMediaManager.loadBitmapFromPath(savedPath)
+                    if (savedIcon != null) {
+                        val pinned = CustomMediaManager.pinCustomAppIconShortcut(
+                            context = this@MainActivity,
+                            iconBitmap = savedIcon
+                        )
+                        val msg = if (pinned) {
+                            "Ikon disimpan! Konfirmasi pemasangan ikon di Layar Utama."
+                        } else {
+                            "Ikon kustom diterapkan di aplikasi."
+                        }
+                        Toast.makeText(this@MainActivity, msg, Toast.LENGTH_LONG).show()
+                    }
+                } else {
+                    Toast.makeText(
+                        this@MainActivity,
+                        "${target.title} berhasil diterapkan",
+                        Toast.LENGTH_SHORT
+                    ).show()
+                }
+            } else {
+                isSavingCropState = false
+                Toast.makeText(
+                    this@MainActivity,
+                    "Gagal menyimpan foto, silakan coba lagi",
+                    Toast.LENGTH_SHORT
+                ).show()
+            }
+        }
+    }
+
+    private fun pinCustomAppIcon(iconBitmap: Bitmap) {
+        val pinned = CustomMediaManager.pinCustomAppIconShortcut(
+            context = this,
+            iconBitmap = iconBitmap
+        )
+        val message = if (pinned) {
+            "Permintaan pemasangan ikon ke Layar Utama dikirim"
+        } else {
+            "Launcher perangkat Anda tidak mendukung pintasan ikon kustom"
+        }
+        Toast.makeText(this, message, Toast.LENGTH_SHORT).show()
     }
 
     private fun launchFileChooser(

@@ -1,10 +1,13 @@
 package com.focusgram.client.webview
 
+import com.focusgram.client.data.AppThemeStyle
 import com.focusgram.client.data.FocusPreferences
+import com.focusgram.client.ui.theme.buildThemeTokens
 
 /**
  * Generates clean, idempotent CSS + JavaScript payloads injected into Instagram Web
- * to provide a native-like, lightweight, distraction-free experience.
+ * to provide a native-like, themed, frosted-glass, distraction-free experience
+ * with custom Chat & Timeline photo background support.
  */
 object InstagramScriptInjector {
 
@@ -12,8 +15,13 @@ object InstagramScriptInjector {
 
     fun buildCss(prefs: FocusPreferences, isDarkTheme: Boolean, isAmoled: Boolean): String {
         val sb = StringBuilder()
+        val tokens = buildThemeTokens(
+            style = prefs.appThemeStyle,
+            isDark = isDarkTheme,
+            isAmoled = isAmoled
+        )
 
-        // Base native-feel polish
+        // Base native-feel & Liquid Glass frosted chrome polish
         sb.append(
             """
             * {
@@ -23,20 +31,92 @@ object InstagramScriptInjector {
                 overscroll-behavior-y: contain !important;
                 scroll-behavior: smooth;
                 -webkit-font-smoothing: antialiased;
+                accent-color: ${tokens.cssAccentHex} !important;
             }
             ::-webkit-scrollbar {
                 width: 0px !important;
                 height: 0px !important;
                 display: none !important;
             }
+            header, nav, div[role="dialog"] > div {
+                -webkit-backdrop-filter: blur(22px) saturate(180%);
+                backdrop-filter: blur(22px) saturate(180%);
+            }
             """.trimIndent()
         )
 
+        // Theme-specific surface tinting (AMOLED or the 5 custom themes)
         if (isDarkTheme && isAmoled) {
             sb.append(
                 """
-                html, body, main, section, header, nav {
+                html:not(.focusgram-custom-bg-active),
+                html:not(.focusgram-custom-bg-active) body,
+                html:not(.focusgram-custom-bg-active) main,
+                html:not(.focusgram-custom-bg-active) section,
+                html:not(.focusgram-custom-bg-active) header,
+                html:not(.focusgram-custom-bg-active) nav {
                     background-color: #000000 !important;
+                }
+                """.trimIndent()
+            )
+        } else if (prefs.appThemeStyle != AppThemeStyle.LIQUID_GLASS) {
+            sb.append(
+                """
+                html:not(.focusgram-custom-bg-active),
+                html:not(.focusgram-custom-bg-active) body,
+                html:not(.focusgram-custom-bg-active) main,
+                html:not(.focusgram-custom-bg-active) section {
+                    background-color: ${tokens.cssBgHex} !important;
+                }
+                header, nav {
+                    background-color: ${tokens.cssGlassSurfaceRgba} !important;
+                    border-color: ${tokens.cssBorderRgba} !important;
+                }
+                a:active, button:active {
+                    color: ${tokens.cssAccentHex} !important;
+                }
+                """.trimIndent()
+            )
+        }
+
+        // Custom photo background rules (Chat DM & Timeline) — lets native photo behind WebView shine through
+        if (prefs.hasChatBackground || prefs.hasTimelineBackground) {
+            sb.append(
+                """
+                html.focusgram-custom-bg-active,
+                html.focusgram-custom-bg-active body,
+                html.focusgram-custom-bg-active #mount_0_0,
+                html.focusgram-custom-bg-active [id^="mount_0_0"],
+                html.focusgram-custom-bg-active main,
+                html.focusgram-custom-bg-active section,
+                html.focusgram-custom-bg-active [role="main"],
+                html.focusgram-custom-bg-active [data-focusgram-transparent="1"] {
+                    background-color: transparent !important;
+                    background: transparent !important;
+                }
+                html.focusgram-custom-timeline-bg article {
+                    background-color: ${tokens.cssGlassSurfaceRgba} !important;
+                    -webkit-backdrop-filter: blur(18px) saturate(165%) !important;
+                    backdrop-filter: blur(18px) saturate(165%) !important;
+                    border: 1px solid ${tokens.cssBorderRgba} !important;
+                    border-radius: 18px !important;
+                    margin: 8px 6px !important;
+                    overflow: hidden !important;
+                }
+                html.focusgram-custom-bg-active header,
+                html.focusgram-custom-bg-active nav {
+                    background-color: ${tokens.cssGlassSurfaceRgba} !important;
+                    -webkit-backdrop-filter: blur(22px) saturate(180%) !important;
+                    backdrop-filter: blur(22px) saturate(180%) !important;
+                    border-color: ${tokens.cssBorderRgba} !important;
+                }
+                html.focusgram-custom-chat-bg [role="textbox"],
+                html.focusgram-custom-chat-bg textarea,
+                html.focusgram-custom-chat-bg form {
+                    background-color: ${tokens.cssGlassSurfaceRgba} !important;
+                    -webkit-backdrop-filter: blur(18px) saturate(165%) !important;
+                    backdrop-filter: blur(18px) saturate(165%) !important;
+                    border-radius: 22px !important;
                 }
                 """.trimIndent()
             )
@@ -139,7 +219,8 @@ object InstagramScriptInjector {
 
     /**
      * Produces a self-contained JavaScript snippet that updates the injected stylesheet,
-     * configures the live MutationObserver, hooks SPA navigation events, and cleans DOM distractions.
+     * configures the live MutationObserver, hooks SPA navigation events, applies custom
+     * background transparency classes, and cleans DOM distractions.
      */
     fun buildInjectionScript(
         prefs: FocusPreferences,
@@ -159,6 +240,8 @@ object InstagramScriptInjector {
                         hideMetrics: ${prefs.hideEngagementCounts},
                         autoMute: ${prefs.autoMuteVideos},
                         useNativeBottomBar: ${prefs.useNativeBottomBar},
+                        hasChatBg: ${prefs.hasChatBackground},
+                        hasTimelineBg: ${prefs.hasTimelineBackground},
                         isDark: $isDarkTheme
                     };
                     window.__focusGramCfg = cfg;
@@ -180,12 +263,50 @@ object InstagramScriptInjector {
                         }
                     }
 
-                    // 3. DOM distraction cleaner (idempotent & lightweight)
+                    // 3. DOM distraction cleaner & custom background surface sync
                     function cleanDom() {
                         var c = window.__focusGramCfg;
                         if (!c) return;
                         var blockedNow = 0;
                         var path = window.location.pathname || '/';
+                        var isAuthPage = path.indexOf('/accounts/login') === 0 ||
+                                         path.indexOf('/accounts/emailsignup') === 0 ||
+                                         path.indexOf('/challenge') === 0;
+                        var isDirectPage = path.indexOf('/direct') === 0;
+                        var isReelsPage = path.indexOf('/reels') === 0 || path.indexOf('/reel/') === 0;
+
+                        // 0. Sync custom photo background classes on <html> & wrapper ancestors
+                        var root = document.documentElement;
+                        var useChatBg = c.hasChatBg && isDirectPage;
+                        var useTimelineBg = c.hasTimelineBg && !isDirectPage && !isAuthPage && !isReelsPage;
+                        var anyCustomBg = useChatBg || useTimelineBg;
+
+                        root.classList.toggle('focusgram-custom-bg-active', anyCustomBg);
+                        root.classList.toggle('focusgram-custom-chat-bg', useChatBg);
+                        root.classList.toggle('focusgram-custom-timeline-bg', useTimelineBg);
+
+                        if (anyCustomBg) {
+                            var anchors = document.querySelectorAll('main, [role="main"], [role="grid"]');
+                            for (var an = 0; an < anchors.length; an++) {
+                                var cur = anchors[an];
+                                var depth = 0;
+                                while (cur && cur.tagName !== 'BODY' && depth < 8) {
+                                    cur.setAttribute('data-focusgram-transparent', '1');
+                                    cur = cur.parentElement;
+                                    depth++;
+                                }
+                            }
+                            if (useChatBg) {
+                                var chatShells = document.querySelectorAll('[role="main"] > div, [role="main"] > div > div, [role="grid"] > div');
+                                for (var cs = 0; cs < chatShells.length; cs++) {
+                                    chatShells[cs].setAttribute('data-focusgram-transparent', '1');
+                                }
+                            }
+                        } else {
+                            document.querySelectorAll('[data-focusgram-transparent="1"]').forEach(function(el) {
+                                el.removeAttribute('data-focusgram-transparent');
+                            });
+                        }
 
                         // A. Hide "Open in Instagram app" banners & modals
                         if (c.hideOpenInApp) {
@@ -206,7 +327,6 @@ object InstagramScriptInjector {
                                                         btn.parentElement;
                                         if (container && container.tagName !== 'BODY' && container.tagName !== 'MAIN') {
                                             if (container.getAttribute('data-focusgram-upsell') !== 'true') {
-                                                // Avoid hiding full login forms
                                                 if (!container.querySelector('input[type="password"]')) {
                                                     container.setAttribute('data-focusgram-upsell', 'true');
                                                     blockedNow++;
@@ -296,7 +416,7 @@ object InstagramScriptInjector {
                             });
                         }
 
-                        // E. Hide Reels containers & redirect guard
+                        // E. Hide Reels containers when Hide Reels is enabled
                         if (c.hideReels) {
                             var reelLinks = document.querySelectorAll('a[href^="/reel/"], a[href^="/reels"]');
                             for (var rl = 0; rl < reelLinks.length; rl++) {
@@ -322,10 +442,7 @@ object InstagramScriptInjector {
                             }
                         }
 
-                        // G. Hide Instagram's web bottom nav when Native Bottom Bar is enabled
-                        var isAuthPage = path.indexOf('/accounts/login') === 0 ||
-                                         path.indexOf('/accounts/emailsignup') === 0 ||
-                                         path.indexOf('/challenge') === 0;
+                        // G. Hide Instagram's web bottom nav ONLY when Native Bottom Bar is explicitly enabled
                         if (c.useNativeBottomBar && !isAuthPage) {
                             var navCandidates = document.querySelectorAll('nav, div[role="tablist"], footer');
                             for (var n = 0; n < navCandidates.length; n++) {

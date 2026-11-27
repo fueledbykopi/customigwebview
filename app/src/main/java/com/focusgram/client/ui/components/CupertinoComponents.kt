@@ -45,13 +45,13 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.focusgram.client.ui.theme.IosGreen
 import com.focusgram.client.ui.theme.IosSwitchTrackOffDark
 import com.focusgram.client.ui.theme.IosSwitchTrackOffLight
+import com.focusgram.client.ui.theme.LocalFocusThemeTokens
 
 /**
- * Lightweight, zero-overhead iOS-style pill toggle switch (50x30 dp)
- * with tactile haptic feedback and spring thumb animation.
+ * Tactile iOS 26 Liquid Glass pill toggle switch (50x30 dp) with theme-aware active track
+ * and spring thumb animation.
  */
 @Composable
 fun CupertinoSwitch(
@@ -61,11 +61,12 @@ fun CupertinoSwitch(
     modifier: Modifier = Modifier
 ) {
     val haptic = LocalHapticFeedback.current
+    val tokens = LocalFocusThemeTokens.current
     val trackColor by animateColorAsState(
         targetValue = if (checked) {
-            IosGreen
+            tokens.activeSwitchTrack
         } else {
-            if (isDark) IosSwitchTrackOffDark else IosSwitchTrackOffLight
+            if (isDark) IosSwitchTrackOffDark.copy(alpha = 0.85f) else IosSwitchTrackOffLight
         },
         animationSpec = tween(durationMillis = 180),
         label = "cupertino_switch_track"
@@ -73,7 +74,7 @@ fun CupertinoSwitch(
     val thumbOffset by animateDpAsState(
         targetValue = if (checked) 20.dp else 0.dp,
         animationSpec = spring(
-            dampingRatio = 0.72f,
+            dampingRatio = 0.70f,
             stiffness = Spring.StiffnessMedium
         ),
         label = "cupertino_switch_thumb"
@@ -99,7 +100,7 @@ fun CupertinoSwitch(
             modifier = Modifier
                 .offset(x = thumbOffset)
                 .size(26.dp)
-                .shadow(elevation = 2.dp, shape = CircleShape, clip = false)
+                .shadow(elevation = 3.dp, shape = CircleShape, clip = false)
                 .background(Color.White, CircleShape)
         )
     }
@@ -116,32 +117,42 @@ fun IosSectionHeader(
     Text(
         text = title.uppercase(),
         style = MaterialTheme.typography.labelMedium.copy(
-            letterSpacing = 0.6.sp,
-            fontWeight = FontWeight.Medium
+            letterSpacing = 0.7.sp,
+            fontWeight = FontWeight.SemiBold
         ),
         color = MaterialTheme.colorScheme.onSurfaceVariant,
-        modifier = modifier.padding(start = 14.dp, bottom = 6.dp)
+        modifier = modifier.padding(start = 14.dp, bottom = 7.dp)
     )
 }
 
 /**
- * iOS Inset Grouped card container with crisp hairline border and rounded corners.
+ * Authentic iOS 26 Liquid Glass / themed frosted card container with diagonal specular
+ * refraction border and subtle top glass sheen.
  */
 @Composable
 fun IosGroupedCard(
     modifier: Modifier = Modifier,
     content: @Composable ColumnScope.() -> Unit
 ) {
+    val tokens = LocalFocusThemeTokens.current
+    val shape = RoundedCornerShape(tokens.cardCornerRadius)
+
     Surface(
-        shape = RoundedCornerShape(16.dp),
-        color = MaterialTheme.colorScheme.surfaceContainer,
+        shape = shape,
+        color = tokens.glassSurface,
         border = BorderStroke(
-            width = 0.5.dp,
-            color = MaterialTheme.colorScheme.outline.copy(alpha = 0.22f)
+            width = 0.85.dp,
+            brush = tokens.specularBorderBrush
         ),
+        shadowElevation = if (tokens.isDark) 4.dp else 6.dp,
         modifier = modifier.fillMaxWidth()
     ) {
-        Column(content = content)
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .background(tokens.topSheenBrush),
+            content = content
+        )
     }
 }
 
@@ -155,38 +166,44 @@ fun IosHairlineDivider(
 ) {
     HorizontalDivider(
         thickness = 0.5.dp,
-        color = MaterialTheme.colorScheme.outline.copy(alpha = 0.24f),
+        color = MaterialTheme.colorScheme.outline.copy(alpha = 0.22f),
         modifier = modifier.padding(start = startIndent)
     )
 }
 
 /**
- * Classic iOS Settings colored squircle icon badge (28dp).
+ * Glossy iOS Settings colored squircle icon badge (30dp) with top specular sheen.
  */
 @Composable
 fun IosIconBadge(
     icon: ImageVector,
     tint: Color,
+    iconTint: Color = Color.White,
     modifier: Modifier = Modifier
 ) {
     Box(
         contentAlignment = Alignment.Center,
         modifier = modifier
-            .size(30.dp)
-            .clip(RoundedCornerShape(8.dp))
+            .size(31.dp)
+            .clip(RoundedCornerShape(9.dp))
             .background(tint)
+            .background(
+                androidx.compose.ui.graphics.Brush.verticalGradient(
+                    colors = listOf(Color.White.copy(alpha = 0.28f), Color.Transparent)
+                )
+            )
     ) {
         Icon(
             imageVector = icon,
             contentDescription = null,
-            tint = Color.White,
+            tint = iconTint,
             modifier = Modifier.size(17.dp)
         )
     }
 }
 
 /**
- * iOS Capsule Segmented Control (zero heavy shadows, clean active pill).
+ * Liquid Glass capsule segmented control with specular active glass pill.
  */
 @Composable
 fun <T> IosSegmentedControl(
@@ -197,9 +214,12 @@ fun <T> IosSegmentedControl(
     modifier: Modifier = Modifier
 ) {
     val haptic = LocalHapticFeedback.current
+    val tokens = LocalFocusThemeTokens.current
+
     Surface(
-        shape = RoundedCornerShape(12.dp),
-        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.72f),
+        shape = RoundedCornerShape(14.dp),
+        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.52f),
+        border = BorderStroke(0.5.dp, tokens.glassBorderMid),
         modifier = modifier.fillMaxWidth()
     ) {
         Row(
@@ -215,15 +235,15 @@ fun <T> IosSegmentedControl(
                         haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
                         onSelect(item)
                     },
-                    shape = RoundedCornerShape(9.dp),
+                    shape = RoundedCornerShape(11.dp),
                     color = if (isSelected) {
-                        MaterialTheme.colorScheme.surface
+                        tokens.glassElevated
                     } else {
                         Color.Transparent
                     },
-                    shadowElevation = if (isSelected) 1.5.dp else 0.dp,
+                    shadowElevation = if (isSelected) 2.dp else 0.dp,
                     border = if (isSelected) {
-                        BorderStroke(0.5.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.18f))
+                        BorderStroke(0.7.dp, tokens.specularBorderBrush)
                     } else {
                         null
                     },

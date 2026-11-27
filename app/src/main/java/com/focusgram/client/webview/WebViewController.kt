@@ -42,6 +42,7 @@ class WebViewController {
         when (section) {
             InstagramSection.HOME -> wv.loadUrl(InstagramUrlPolicy.HOME_URL)
             InstagramSection.SEARCH -> wv.loadUrl(InstagramUrlPolicy.EXPLORE_URL)
+            InstagramSection.REELS -> wv.loadUrl(InstagramUrlPolicy.REELS_URL)
             InstagramSection.DIRECT -> wv.loadUrl(InstagramUrlPolicy.DIRECT_URL)
             InstagramSection.ACTIVITY -> wv.loadUrl(InstagramUrlPolicy.ACTIVITY_URL)
             InstagramSection.PROFILE -> {
@@ -99,6 +100,12 @@ class WebViewController {
         if (WebViewFeature.isFeatureSupported(WebViewFeature.ALGORITHMIC_DARKENING)) {
             WebSettingsCompat.setAlgorithmicDarkeningAllowed(wv.settings, isDarkTheme)
         }
+    }
+
+    fun applyBackgroundTransparency(isTransparent: Boolean, fallbackColor: Int) {
+        val color = if (isTransparent) android.graphics.Color.TRANSPARENT else fallbackColor
+        webView?.setBackgroundColor(color)
+        swipeRefreshRef?.get()?.setBackgroundColor(color)
     }
 
     fun clearCacheKeepSession() {

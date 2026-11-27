@@ -9,7 +9,7 @@
 ### 1. Mesin Bebas Distraksi Real-Time (Tanpa Muat Ulang)
 Dapat diaktifkan/nonaktifkan langsung melalui **Kontrol Mode Fokus** (ikon perisai di bilah atas) dan diterapkan secara *live* lewat injeksi CSS + `MutationObserver` ringan:
 - **Preset Cepat**: *Mode Zen*, *Seimbang (Rekomendasi)*, dan *Minimalis*.
-- **Sembunyikan Reels**: Menghapus tombol/kartu Reels dan memblokir navigasi ke rute `/reels/`.
+- **Opsi Tampilkan / Sembunyikan Reels**: Aktifkan *Tampilkan Reels* kapan saja lewat Pengaturan atau Mode Fokus untuk menampilkan tab & konten Reels, atau matikan untuk memblokir rute `/reels/`.
 - **Sembunyikan Grid Explore**: Menghilangkan grid konten viral di halaman Explore sambil tetap mempertahankan kolom pencarian akun.
 - **Sembunyikan Saran & Iklan Feed**: Menyaring kartu *"Disarankan untuk Anda / Suggested for you"* dan *"Bersponsor / Sponsored"*.
 - **Hapus Banner "Buka di Aplikasi"**: Membersihkan banner/popup ajakan mengunduh aplikasi resmi dan mencegah redirect `intent://`.
@@ -19,9 +19,14 @@ Dapat diaktifkan/nonaktifkan langsung melalui **Kontrol Mode Fokus** (ikon peris
 - **Mode Monokrom (Grayscale)** *(opsional)*: Filter abu-abu untuk mengurangi adiksi visual.
 - **Pengingat Waktu Fokus (Mindful Timer)**: Pengingat istirahat otomatis (10 / 15 / 30 / 45 / 60 menit).
 
-### 2. Pengalaman Layaknya Aplikasi Native
-- **Material 3 & Dynamic Color (Android 12+)**: Mendukung tema *Ikuti Sistem*, *Terang*, *Gelap*, dan **AMOLED Hitam Pekat (`#000000`)** dengan sinkronisasi *Algorithmic Darkening* WebView.
-- **Bilah Navigasi Bawah Native**: Tab *Beranda*, *Cari*, *Pesan (DM)*, *Aktivitas*, dan *Profil* lengkap dengan umpan balik haptik serta sinkronisasi rute SPA (`history.pushState` / `popstate`).
+### 2. Tema Liquid Glass iOS Terbaru, 5 Tema Kustom & Kustomisasi Foto
+- **6 Gaya Tema Premium**:
+  - **Liquid Glass (Default)**: Desain *Frosted Blur & Liquid Glass* ala iOS terbaru lengkap dengan ambient mesh blur (`RenderEffect` Android 12+), bingkai specular, dan permukaan kaca transparan.
+  - **5 Tema Tambahan**: **Cyberpunk**, **GTA VI**, **Spider-Man**, **Tech**, dan **Barbie**, lengkap dengan mode *Sistem*, *Terang*, *Gelap*, dan **AMOLED Hitam Pekat (`#000000`)**.
+- **Background Chat (DM), Background Timeline & Ikon Aplikasi Pakai Foto Sendiri**:
+  - Pilih foto dari galeri dengan editor **Pinch-to-Zoom & Geser (Pan)** interaktif + slider zoom untuk mengepaskan foto ke layar chat, timeline, atau bingkai ikon squircle.
+  - Atur tingkat redup/frost lapisan foto agar teks tetap jelas, dan pasang ikon foto kustom ke Layar Utama (Home Screen) via *Pinned Shortcut*.
+- **Bilah Navigasi Bawah Native (Opsional, Bukan Default)**: Nonaktif secara bawaan agar menggunakan navigasi asli Instagram; dapat diaktifkan kapan saja di Pengaturan sebagai floating dock Liquid Glass (otomatis menampilkan tab Reels jika Reels aktif).
 - **Mode Layar Penuh (Immersive)**: Bilah atas dapat disembunyikan, menyisakan tombol perisai Fokus yang ringkas.
 - **Pull-to-Refresh Cerdas**: Menggunakan `SwipeRefreshLayout` yang hanya aktif saat halaman berada di posisi scroll paling atas (`scrollY == 0`).
 - **Navigasi Kembali Cerdas**: Mendukung penutupan video fullscreen, bottom sheet, riwayat WebView, dan konfirmasi tekan dua kali untuk keluar.

@@ -43,6 +43,7 @@ import com.focusgram.client.ui.theme.IosPink
 import com.focusgram.client.ui.theme.IosPurple
 import com.focusgram.client.ui.theme.IosRed
 import com.focusgram.client.ui.theme.IosTeal
+import com.focusgram.client.ui.theme.LocalFocusThemeTokens
 import java.util.Locale
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -67,19 +68,20 @@ fun FocusControlSheet(
     onOpenFullSettings: () -> Unit
 ) {
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+    val tokens = LocalFocusThemeTokens.current
 
     ModalBottomSheet(
         onDismissRequest = onDismiss,
         sheetState = sheetState,
-        shape = RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp),
-        containerColor = MaterialTheme.colorScheme.background,
+        shape = RoundedCornerShape(topStart = 30.dp, topEnd = 30.dp),
+        containerColor = tokens.glassSheet,
         dragHandle = {
             Box(
                 modifier = Modifier
                     .padding(top = 10.dp, bottom = 6.dp)
-                    .size(width = 36.dp, height = 5.dp)
+                    .size(width = 38.dp, height = 5.dp)
                     .background(
-                        color = MaterialTheme.colorScheme.outline.copy(alpha = 0.35f),
+                        color = MaterialTheme.colorScheme.outline.copy(alpha = 0.42f),
                         shape = CircleShape
                     )
             )
@@ -102,7 +104,8 @@ fun FocusControlSheet(
             ) {
                 IosIconBadge(
                     icon = FocusIcons.ShieldFilled,
-                    tint = MaterialTheme.colorScheme.primary
+                    tint = MaterialTheme.colorScheme.primary,
+                    iconTint = MaterialTheme.colorScheme.onPrimary
                 )
                 Spacer(modifier = Modifier.width(12.dp))
                 Column(modifier = Modifier.weight(1f)) {
@@ -184,12 +187,12 @@ fun FocusControlSheet(
             IosSectionHeader(title = "Filter Konten & Privasi")
             IosGroupedCard {
                 IosToggleRow(
-                    icon = FocusIcons.ReelsOff,
+                    icon = FocusIcons.ReelsPlayOutline,
                     iconTint = IosPink,
-                    title = "Sembunyikan Reels",
-                    subtitle = "Hapus tab Reels & blokir rute /reels",
-                    checked = preferences.hideReels,
-                    onCheckedChange = onToggleHideReels,
+                    title = "Tampilkan Reels",
+                    subtitle = "Aktifkan untuk menampilkan tab & video Reels di Instagram",
+                    checked = preferences.showReels,
+                    onCheckedChange = { show -> onToggleHideReels(!show) },
                     isDark = isDarkTheme
                 )
                 IosHairlineDivider(startIndent = 56.dp)
@@ -276,15 +279,15 @@ fun FocusControlSheet(
 
             Spacer(modifier = Modifier.height(16.dp))
 
-            // iOS Capsule Full-Width Action Button
+            // Liquid Glass Full-Width Settings Action Button
             Surface(
                 onClick = onOpenFullSettings,
-                shape = RoundedCornerShape(14.dp),
-                color = MaterialTheme.colorScheme.surfaceContainer,
-                contentColor = MaterialTheme.colorScheme.secondary,
+                shape = RoundedCornerShape(16.dp),
+                color = tokens.glassSurface,
+                contentColor = MaterialTheme.colorScheme.primary,
                 border = BorderStroke(
-                    width = 0.5.dp,
-                    color = MaterialTheme.colorScheme.outline.copy(alpha = 0.22f)
+                    width = 0.85.dp,
+                    brush = tokens.specularBorderBrush
                 ),
                 modifier = Modifier.fillMaxWidth()
             ) {
@@ -300,7 +303,7 @@ fun FocusControlSheet(
                     )
                     Spacer(modifier = Modifier.width(8.dp))
                     Text(
-                        text = "Pengaturan Lengkap",
+                        text = "Pengaturan, Tema & Background",
                         style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.SemiBold)
                     )
                 }

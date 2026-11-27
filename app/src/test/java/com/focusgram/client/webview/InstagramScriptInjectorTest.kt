@@ -1,11 +1,19 @@
 package com.focusgram.client.webview
 
+import com.focusgram.client.data.AppThemeStyle
 import com.focusgram.client.data.FocusPreferences
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class InstagramScriptInjectorTest {
+
+    @Test
+    fun `default preferences disable native bottom nav bar`() {
+        val defaults = FocusPreferences()
+        assertFalse(defaults.useNativeBottomBar)
+        assertTrue(defaults.appThemeStyle == AppThemeStyle.LIQUID_GLASS)
+    }
 
     @Test
     fun `buildCss includes grayscale and AMOLED rules only when enabled`() {
@@ -43,8 +51,36 @@ class InstagramScriptInjectorTest {
     }
 
     @Test
+    fun `buildCss emits custom background transparency and frosted glass rules when photo set`() {
+        val prefs = FocusPreferences(
+            chatBackgroundPath = "/data/user/0/com.focusgram.client/files/custom_media/chat_bg_1.jpg",
+            timelineBackgroundPath = "/data/user/0/com.focusgram.client/files/custom_media/timeline_bg_1.jpg"
+        )
+        val css = InstagramScriptInjector.buildCss(prefs, isDarkTheme = true, isAmoled = false)
+
+        assertTrue(css.contains("focusgram-custom-bg-active"))
+        assertTrue(css.contains("focusgram-custom-timeline-bg"))
+        assertTrue(css.contains("focusgram-custom-chat-bg"))
+        assertTrue(css.contains("backdrop-filter: blur"))
+    }
+
+    @Test
+    fun `buildCss applies theme palette accents for all 6 themes`() {
+        for (style in AppThemeStyle.entries) {
+            val prefs = FocusPreferences(appThemeStyle = style)
+            val css = InstagramScriptInjector.buildCss(prefs, isDarkTheme = true, isAmoled = false)
+            assertTrue("Missing backdrop-filter for $style", css.contains("backdrop-filter: blur"))
+            assertTrue("Missing accent-color for $style", css.contains("accent-color:"))
+        }
+    }
+
+    @Test
     fun `buildInjectionScript wires JS bridge and current flags`() {
-        val prefs = FocusPreferences(hideReels = true, autoMuteVideos = true)
+        val prefs = FocusPreferences(
+            hideReels = false,
+            autoMuteVideos = true,
+            chatBackgroundPath = "/tmp/chat.jpg"
+        )
         val script = InstagramScriptInjector.buildInjectionScript(
             prefs = prefs,
             isDarkTheme = true,
@@ -52,8 +88,10 @@ class InstagramScriptInjectorTest {
         )
 
         assertTrue(script.contains(InstagramScriptInjector.BRIDGE_NAME))
-        assertTrue(script.contains("hideReels: true"))
+        assertTrue(script.contains("hideReels: false"))
         assertTrue(script.contains("autoMute: true"))
+        assertTrue(script.contains("hasChatBg: true"))
+        assertTrue(script.contains("hasTimelineBg: false"))
         assertTrue(script.contains("MutationObserver"))
     }
 }

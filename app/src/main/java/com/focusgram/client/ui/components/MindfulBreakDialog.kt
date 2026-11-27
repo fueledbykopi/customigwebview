@@ -14,6 +14,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import com.focusgram.client.ui.theme.LocalFocusThemeTokens
 
 @Composable
 fun MindfulBreakDialog(
@@ -22,10 +23,12 @@ fun MindfulBreakDialog(
     onExtendFiveMinutes: () -> Unit,
     onDismiss: () -> Unit
 ) {
+    val tokens = LocalFocusThemeTokens.current
+
     AlertDialog(
         onDismissRequest = onDismiss,
-        shape = RoundedCornerShape(22.dp),
-        containerColor = MaterialTheme.colorScheme.surfaceContainer,
+        shape = RoundedCornerShape(24.dp),
+        containerColor = tokens.glassSheet,
         icon = {
             Icon(
                 imageVector = FocusIcons.Timer,
@@ -64,7 +67,7 @@ fun MindfulBreakDialog(
                 onClick = onExtendFiveMinutes,
                 shape = CircleShape
             ) {
-                Text("Tambah 5 Menit", color = MaterialTheme.colorScheme.secondary)
+                Text("Tambah 5 Menit", color = MaterialTheme.colorScheme.primary)
             }
         }
     )
