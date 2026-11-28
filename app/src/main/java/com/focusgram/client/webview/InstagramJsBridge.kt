@@ -6,7 +6,9 @@ import android.webkit.JavascriptInterface
 
 class InstagramJsBridge(
     private val onUrlChangedCallback: (String) -> Unit,
-    private val onDistractionBlockedCallback: (Int) -> Unit
+    private val onDistractionBlockedCallback: (Int) -> Unit,
+    private val onGhostActionBlockedCallback: (String) -> Unit = {},
+    private val onPullToRefreshAllowedCallback: (Boolean) -> Unit = {}
 ) {
     private val mainHandler = Handler(Looper.getMainLooper())
 
@@ -23,6 +25,21 @@ class InstagramJsBridge(
         if (count <= 0) return
         mainHandler.post {
             onDistractionBlockedCallback(count)
+        }
+    }
+
+    @JavascriptInterface
+    fun onGhostActionBlocked(kind: String) {
+        if (kind.isBlank()) return
+        mainHandler.post {
+            onGhostActionBlockedCallback(kind)
+        }
+    }
+
+    @JavascriptInterface
+    fun onPullToRefreshAllowed(allowed: Boolean) {
+        mainHandler.post {
+            onPullToRefreshAllowedCallback(allowed)
         }
     }
 }

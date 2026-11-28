@@ -14,6 +14,7 @@ import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
@@ -48,6 +49,7 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.asImageBitmap
@@ -56,6 +58,7 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
+import androidx.compose.ui.zIndex
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.focusgram.client.data.CustomMediaManager
 import com.focusgram.client.data.CustomMediaTarget
@@ -70,6 +73,7 @@ import com.focusgram.client.ui.components.MindfulBreakDialog
 import com.focusgram.client.ui.components.OfflineErrorOverlay
 import com.focusgram.client.ui.components.PhotoCropperOverlay
 import com.focusgram.client.ui.components.WebViewContainer
+import com.focusgram.client.ui.theme.IosPurple
 import com.focusgram.client.ui.theme.LocalFocusThemeTokens
 import com.focusgram.client.ui.theme.resolveDarkTheme
 import com.focusgram.client.webview.WebViewController
@@ -141,6 +145,11 @@ fun MainScreen(
     }
     val activeBgImage = remember(activeCustomBg) { activeCustomBg?.asImageBitmap() }
     val fallbackBgColorInt = MaterialTheme.colorScheme.background.toArgb()
+
+    // Preserve the active URL when recovering from an OS WebView renderer kill after long inactivity
+    val activeInitialUrl = remember(uiState.webViewGeneration) {
+        if (uiState.webViewGeneration == 0) initialUrl else uiState.currentUrl
+    }
 
     fun showMessage(message: String) {
         coroutineScope.launch {
@@ -218,10 +227,22 @@ fun MainScreen(
                         isLoading = uiState.isLoading,
                         loadingProgress = uiState.loadingProgress,
                         activeFilterCount = preferences.activeFilterCount,
+                        ghostModeEnabled = preferences.ghostModeEnabled,
                         isDarkTheme = isDarkTheme,
                         customAppIcon = customAppIconBitmap,
                         onBackClick = { webViewController.goBack() },
                         onTitleClick = { webViewController.scrollToTop() },
+                        onToggleGhostMode = {
+                            val next = !preferences.ghostModeEnabled
+                            viewModel.toggleGhostMode(next)
+                            showMessage(
+                                if (next) {
+                                    "Ghost Mode aktif: Story tanpa jejak & DM tanpa seen"
+                                } else {
+                                    "Ghost Mode dimatikan"
+                                }
+                            )
+                        },
                         onFocusControlsClick = { viewModel.setFocusSheetVisible(true) },
                         onRefreshClick = {
                             viewModel.clearError()
@@ -270,7 +291,8 @@ fun MainScreen(
                     .imePadding()
             ) {
                 WebViewContainer(
-                    initialUrl = initialUrl,
+                    initialUrl = activeInitialUrl,
+                    webViewGeneration = uiState.webViewGeneration,
                     controller = webViewController,
                     preferences = preferences,
                     isDarkTheme = isDarkTheme,
@@ -295,13 +317,17 @@ fun MainScreen(
                     onExitFullscreen = onExitFullscreen,
                     onTrackerBlocked = { viewModel.onTrackerBlocked() },
                     onDistractionBlocked = { count -> viewModel.onDistractionBlocked(count) },
+                    onGhostActionBlocked = { kind -> viewModel.onGhostActionBlocked(kind) },
                     onReelsBlocked = {
                         showMessage("Reels disembunyikan. Aktifkan 'Tampilkan Reels' di Pengaturan atau Mode Fokus.")
+                    },
+                    onRenderProcessGone = {
+                        viewModel.onWebViewRenderProcessGone()
                     },
                     modifier = Modifier.fillMaxSize()
                 )
 
-                // Slim progress bar & Liquid Glass Focus pill when TopBar is hidden (Immersive mode)
+                // Slim progress bar & persistent floating Focus + Ghost + Settings capsule when TopBar is hidden
                 if (!preferences.showTopBar) {
                     if (uiState.isLoading && uiState.loadingProgress in 1..99) {
                         LinearProgressIndicator(
@@ -309,7 +335,8 @@ fun MainScreen(
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .height(2.dp)
-                                .align(Alignment.TopCenter),
+                                .align(Alignment.TopCenter)
+                                .zIndex(20f),
                             color = MaterialTheme.colorScheme.primary,
                             trackColor = Color.Transparent,
                             strokeCap = StrokeCap.Round
@@ -317,10 +344,8 @@ fun MainScreen(
                     }
 
                     Surface(
-                        onClick = { viewModel.setFocusSheetVisible(true) },
                         shape = CircleShape,
                         color = tokens.glassElevated,
-                        contentColor = MaterialTheme.colorScheme.primary,
                         border = BorderStroke(
                             width = 0.85.dp,
                             brush = tokens.specularBorderBrush
@@ -328,25 +353,70 @@ fun MainScreen(
                         shadowElevation = 8.dp,
                         modifier = Modifier
                             .align(Alignment.TopEnd)
-                            .padding(12.dp)
+                            .zIndex(20f)
+                            .padding(10.dp)
                     ) {
                         Row(
                             verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.Center,
-                            modifier = Modifier.padding(horizontal = 11.dp, vertical = 6.dp)
+                            horizontalArrangement = Arrangement.spacedBy(4.dp),
+                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 5.dp)
                         ) {
-                            Icon(
-                                imageVector = FocusIcons.ShieldFilled,
-                                contentDescription = "Mode Fokus",
-                                modifier = Modifier.size(14.dp)
-                            )
-                            Spacer(modifier = Modifier.width(4.dp))
-                            Text(
-                                text = preferences.activeFilterCount.toString(),
-                                style = MaterialTheme.typography.labelLarge.copy(
-                                    fontWeight = FontWeight.SemiBold
+                            Box(
+                                contentAlignment = Alignment.Center,
+                                modifier = Modifier
+                                    .size(26.dp)
+                                    .clip(CircleShape)
+                                    .clickable {
+                                        val next = !preferences.ghostModeEnabled
+                                        viewModel.toggleGhostMode(next)
+                                        showMessage(
+                                            if (next) "Ghost Mode aktif" else "Ghost Mode dimatikan"
+                                        )
+                                    }
+                            ) {
+                                Icon(
+                                    imageVector = FocusIcons.Ghost,
+                                    contentDescription = "Mode Hantu",
+                                    tint = if (preferences.ghostModeEnabled) IosPurple else MaterialTheme.colorScheme.onSurfaceVariant,
+                                    modifier = Modifier.size(16.dp)
                                 )
-                            )
+                            }
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                modifier = Modifier
+                                    .clip(CircleShape)
+                                    .clickable { viewModel.setFocusSheetVisible(true) }
+                                    .padding(horizontal = 5.dp, vertical = 3.dp)
+                            ) {
+                                Icon(
+                                    imageVector = FocusIcons.ShieldFilled,
+                                    contentDescription = "Mode Fokus",
+                                    tint = MaterialTheme.colorScheme.primary,
+                                    modifier = Modifier.size(14.dp)
+                                )
+                                Spacer(modifier = Modifier.width(3.dp))
+                                Text(
+                                    text = preferences.activeFilterCount.toString(),
+                                    style = MaterialTheme.typography.labelMedium.copy(
+                                        fontWeight = FontWeight.SemiBold
+                                    ),
+                                    color = MaterialTheme.colorScheme.primary
+                                )
+                            }
+                            Box(
+                                contentAlignment = Alignment.Center,
+                                modifier = Modifier
+                                    .size(26.dp)
+                                    .clip(CircleShape)
+                                    .clickable { viewModel.setSettingsScreenVisible(true) }
+                            ) {
+                                Icon(
+                                    imageVector = FocusIcons.Gear,
+                                    contentDescription = "Pengaturan",
+                                    tint = MaterialTheme.colorScheme.onSurface,
+                                    modifier = Modifier.size(16.dp)
+                                )
+                            }
                         }
                     }
                 }
@@ -365,19 +435,28 @@ fun MainScreen(
             }
         }
 
-        // Quick Focus Control Bottom Sheet
+        // Quick Focus & Ghost Control Bottom Sheet
         if (uiState.showFocusSheet) {
             FocusControlSheet(
                 preferences = preferences,
                 sessionElapsedSeconds = uiState.sessionElapsedSeconds,
                 blockedTrackersCount = uiState.blockedTrackersCount,
                 blockedDistractionsCount = uiState.blockedDistractionsCount,
+                blockedGhostTracesCount = uiState.blockedGhostTracesCount,
                 isDarkTheme = isDarkTheme,
                 onDismiss = { viewModel.setFocusSheetVisible(false) },
                 onApplyPreset = { preset ->
                     viewModel.applyPreset(preset)
                     showMessage("Preset '${preset.label}' diterapkan")
                 },
+                onToggleGhostMode = { enabled ->
+                    viewModel.toggleGhostMode(enabled)
+                    showMessage(
+                        if (enabled) "Ghost Mode aktif" else "Ghost Mode dimatikan"
+                    )
+                },
+                onToggleGhostViewStories = viewModel::toggleGhostViewStories,
+                onToggleGhostReadDm = viewModel::toggleGhostReadDm,
                 onToggleHideReels = viewModel::toggleHideReels,
                 onToggleHideExploreFeed = viewModel::toggleHideExploreFeed,
                 onToggleHideSuggestedAndAds = viewModel::toggleHideSuggestedAndAds,
@@ -410,6 +489,7 @@ fun MainScreen(
             SettingsScreen(
                 preferences = preferences,
                 isDarkTheme = isDarkTheme,
+                blockedGhostTracesCount = uiState.blockedGhostTracesCount,
                 chatBgPreview = chatBgBitmap,
                 timelineBgPreview = timelineBgBitmap,
                 customAppIconPreview = customAppIconBitmap,
@@ -419,6 +499,18 @@ fun MainScreen(
                     showMessage("Tema '${style.label}' diterapkan")
                 },
                 onThemeModeChange = viewModel::updateThemeMode,
+                onToggleGhostMode = { enabled ->
+                    viewModel.toggleGhostMode(enabled)
+                    showMessage(
+                        if (enabled) {
+                            "Ghost Mode aktif: Story tanpa jejak & DM tanpa seen"
+                        } else {
+                            "Ghost Mode dimatikan"
+                        }
+                    )
+                },
+                onToggleGhostViewStories = viewModel::toggleGhostViewStories,
+                onToggleGhostReadDm = viewModel::toggleGhostReadDm,
                 onPickCustomMedia = onPickCustomMedia,
                 onClearCustomMedia = { target ->
                     viewModel.clearCustomMedia(target)
@@ -436,6 +528,10 @@ fun MainScreen(
                 onToggleShowReels = { show ->
                     viewModel.toggleHideReels(!show)
                     showMessage(if (show) "Reels ditampilkan" else "Reels disembunyikan")
+                },
+                onToggleShowExplore = { show ->
+                    viewModel.toggleHideExploreFeed(!show)
+                    showMessage(if (show) "Explore ditampilkan" else "Grid Explore disembunyikan")
                 },
                 onToggleNativeBottomBar = viewModel::toggleUseNativeBottomBar,
                 onToggleShowTopBar = viewModel::toggleShowTopBar,

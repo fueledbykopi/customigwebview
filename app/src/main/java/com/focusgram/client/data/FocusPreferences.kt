@@ -46,13 +46,13 @@ enum class CustomMediaTarget(
 
 enum class FocusPreset(val label: String, val description: String) {
     ZEN("Mode Zen", "Bebas distraksi maksimal: tanpa Reels, Explore, Stories, & metrik like"),
-    BALANCED("Seimbang (Rekomendasi)", "Hapus Reels, iklan/saran, dan banner aplikasi; pertahankan Feed & DM"),
+    BALANCED("Seimbang (Rekomendasi)", "Hapus Reels, iklan/saran, dan banner aplikasi; pertahankan Feed, Explore & DM"),
     CLASSIC("Minimalis", "Hanya bersihkan banner aplikasi & blokir pelacak")
 }
 
 enum class InstagramSection(val title: String, val url: String) {
     HOME("Beranda", "https://www.instagram.com/"),
-    SEARCH("Cari", "https://www.instagram.com/explore/"),
+    SEARCH("Explore", "https://www.instagram.com/explore/"),
     REELS("Reels", "https://www.instagram.com/reels/"),
     DIRECT("Pesan", "https://www.instagram.com/direct/inbox/"),
     ACTIVITY("Aktivitas", "https://www.instagram.com/accounts/activity/"),
@@ -64,13 +64,16 @@ enum class InstagramSection(val title: String, val url: String) {
 data class FocusPreferences(
     val hideOpenInAppPrompts: Boolean = true,
     val hideReels: Boolean = true,
-    val hideExploreFeed: Boolean = true,
+    val hideExploreFeed: Boolean = false,
     val hideStories: Boolean = false,
     val hideSuggestedAndAds: Boolean = true,
     val hideEngagementCounts: Boolean = false,
     val autoMuteVideos: Boolean = false,
     val grayscaleMode: Boolean = false,
     val blockTrackers: Boolean = true,
+    val ghostModeEnabled: Boolean = false,
+    val ghostViewStories: Boolean = true,
+    val ghostReadDm: Boolean = true,
     val useNativeBottomBar: Boolean = false,
     val showTopBar: Boolean = true,
     val enablePullToRefresh: Boolean = true,
@@ -85,6 +88,12 @@ data class FocusPreferences(
 ) {
     val showReels: Boolean
         get() = !hideReels
+
+    val isGhostStoryActive: Boolean
+        get() = ghostModeEnabled && ghostViewStories
+
+    val isGhostDmActive: Boolean
+        get() = ghostModeEnabled && ghostReadDm
 
     val hasChatBackground: Boolean
         get() = chatBackgroundPath.isNotBlank()
@@ -105,7 +114,8 @@ data class FocusPreferences(
             hideEngagementCounts,
             autoMuteVideos,
             grayscaleMode,
-            blockTrackers
+            blockTrackers,
+            ghostModeEnabled
         ).count { it }
 
     val matchingPreset: FocusPreset?
@@ -114,7 +124,7 @@ data class FocusPreferences(
                 hideSuggestedAndAds && hideEngagementCounts && autoMuteVideos &&
                 grayscaleMode && blockTrackers -> FocusPreset.ZEN
 
-            hideOpenInAppPrompts && hideReels && hideExploreFeed && !hideStories &&
+            hideOpenInAppPrompts && hideReels && !hideExploreFeed && !hideStories &&
                 hideSuggestedAndAds && !hideEngagementCounts && !autoMuteVideos &&
                 !grayscaleMode && blockTrackers -> FocusPreset.BALANCED
 

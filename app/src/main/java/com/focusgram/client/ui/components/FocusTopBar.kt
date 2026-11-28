@@ -29,6 +29,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -47,6 +48,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.focusgram.client.R
 import com.focusgram.client.data.InstagramSection
+import com.focusgram.client.ui.theme.IosPurple
 import com.focusgram.client.ui.theme.LocalFocusThemeTokens
 
 @Composable
@@ -56,10 +58,12 @@ fun FocusTopBar(
     isLoading: Boolean,
     loadingProgress: Int,
     activeFilterCount: Int,
+    ghostModeEnabled: Boolean,
     isDarkTheme: Boolean,
     customAppIcon: Bitmap?,
     onBackClick: () -> Unit,
     onTitleClick: () -> Unit,
+    onToggleGhostMode: () -> Unit,
     onFocusControlsClick: () -> Unit,
     onRefreshClick: () -> Unit,
     onCopyLinkClick: () -> Unit,
@@ -71,6 +75,10 @@ fun FocusTopBar(
     var menuExpanded by remember { mutableStateOf(false) }
     val tokens = LocalFocusThemeTokens.current
     val customIconBitmap = remember(customAppIcon) { customAppIcon?.asImageBitmap() }
+
+    DisposableEffect(Unit) {
+        onDispose { menuExpanded = false }
+    }
 
     val glassPillFill = if (isDarkTheme) {
         Color.White.copy(alpha = 0.09f)
@@ -89,8 +97,8 @@ fun FocusTopBar(
             verticalAlignment = Alignment.CenterVertically,
             modifier = Modifier
                 .fillMaxWidth()
-                .height(54.dp)
-                .padding(horizontal = 12.dp)
+                .height(46.dp)
+                .padding(horizontal = 10.dp)
         ) {
             if (canGoBack && section == InstagramSection.OTHER) {
                 IosCircleIconButton(
@@ -99,23 +107,23 @@ fun FocusTopBar(
                     fillColor = glassPillFill,
                     onClick = onBackClick
                 )
-                Spacer(modifier = Modifier.width(8.dp))
+                Spacer(modifier = Modifier.width(6.dp))
             }
 
-            // Title, optional custom app icon & section glass badge (tap to smooth-scroll top)
+            // Title, optional custom app icon & section pill (tap to smooth-scroll top)
             Row(
                 verticalAlignment = Alignment.CenterVertically,
                 modifier = Modifier
                     .weight(1f)
-                    .clip(RoundedCornerShape(12.dp))
+                    .clip(RoundedCornerShape(10.dp))
                     .clickable(onClick = onTitleClick)
-                    .padding(horizontal = 4.dp, vertical = 4.dp)
+                    .padding(horizontal = 4.dp, vertical = 3.dp)
             ) {
                 if (customIconBitmap != null) {
                     Surface(
-                        shape = RoundedCornerShape(8.dp),
+                        shape = RoundedCornerShape(7.dp),
                         border = BorderStroke(0.6.dp, tokens.specularBorderBrush),
-                        modifier = Modifier.size(26.dp)
+                        modifier = Modifier.size(24.dp)
                     ) {
                         Image(
                             bitmap = customIconBitmap,
@@ -123,16 +131,16 @@ fun FocusTopBar(
                             contentScale = ContentScale.Crop
                         )
                     }
-                    Spacer(modifier = Modifier.width(8.dp))
+                    Spacer(modifier = Modifier.width(6.dp))
                 }
                 Text(
                     text = "FocusGram",
-                    style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
+                    style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold),
                     color = MaterialTheme.colorScheme.onSurface,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis
                 )
-                Spacer(modifier = Modifier.width(7.dp))
+                Spacer(modifier = Modifier.width(6.dp))
                 Surface(
                     shape = CircleShape,
                     color = glassPillFill,
@@ -140,16 +148,53 @@ fun FocusTopBar(
                 ) {
                     Text(
                         text = section.title,
-                        style = MaterialTheme.typography.labelMedium,
+                        style = MaterialTheme.typography.labelSmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis,
-                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp)
+                        modifier = Modifier.padding(horizontal = 7.dp, vertical = 2.dp)
                     )
                 }
             }
 
-            Spacer(modifier = Modifier.width(8.dp))
+            Spacer(modifier = Modifier.width(6.dp))
+
+            // 1-Tap Ghost Mode Toggle Pill (always indicates live visibility status)
+            Surface(
+                onClick = onToggleGhostMode,
+                shape = CircleShape,
+                color = if (ghostModeEnabled) {
+                    IosPurple.copy(alpha = if (isDarkTheme) 0.28f else 0.16f)
+                } else {
+                    glassPillFill
+                },
+                contentColor = if (ghostModeEnabled) IosPurple else MaterialTheme.colorScheme.onSurfaceVariant,
+                border = BorderStroke(
+                    width = 0.7.dp,
+                    color = if (ghostModeEnabled) IosPurple.copy(alpha = 0.65f) else tokens.glassBorderMid
+                )
+            ) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.Center,
+                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 5.dp)
+                ) {
+                    Icon(
+                        imageVector = FocusIcons.Ghost,
+                        contentDescription = "Mode Hantu (Ghost Mode)",
+                        modifier = Modifier.size(15.dp)
+                    )
+                    if (ghostModeEnabled) {
+                        Spacer(modifier = Modifier.width(3.dp))
+                        Text(
+                            text = "Ghost",
+                            style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold)
+                        )
+                    }
+                }
+            }
+
+            Spacer(modifier = Modifier.width(5.dp))
 
             // Liquid Glass Focus Shield Capsule
             Surface(
@@ -167,31 +212,32 @@ fun FocusTopBar(
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.Center,
-                    modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp)
+                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 5.dp)
                 ) {
                     Icon(
                         imageVector = FocusIcons.ShieldFilled,
                         contentDescription = stringResource(R.string.cd_focus_controls),
-                        modifier = Modifier.size(14.dp)
+                        modifier = Modifier.size(13.dp)
                     )
-                    Spacer(modifier = Modifier.width(4.dp))
+                    Spacer(modifier = Modifier.width(3.dp))
                     Text(
                         text = activeFilterCount.toString(),
-                        style = MaterialTheme.typography.labelLarge
+                        style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.SemiBold)
                     )
                 }
             }
 
-            Spacer(modifier = Modifier.width(6.dp))
+            Spacer(modifier = Modifier.width(5.dp))
 
+            // Dedicated always-visible Settings button (guarantees Settings menu can never disappear)
             IosCircleIconButton(
-                icon = FocusIcons.Refresh,
-                contentDescription = stringResource(R.string.cd_refresh),
+                icon = FocusIcons.Gear,
+                contentDescription = "Pengaturan & Tema",
                 fillColor = glassPillFill,
-                onClick = onRefreshClick
+                onClick = onOpenSettingsClick
             )
 
-            Spacer(modifier = Modifier.width(6.dp))
+            Spacer(modifier = Modifier.width(5.dp))
 
             Box {
                 IosCircleIconButton(
@@ -207,6 +253,20 @@ fun FocusTopBar(
                     shape = RoundedCornerShape(18.dp),
                     containerColor = tokens.glassSheet
                 ) {
+                    DropdownMenuItem(
+                        text = { Text("Muat Ulang", style = MaterialTheme.typography.bodyLarge) },
+                        leadingIcon = {
+                            Icon(
+                                imageVector = FocusIcons.Refresh,
+                                contentDescription = null,
+                                modifier = Modifier.size(18.dp)
+                            )
+                        },
+                        onClick = {
+                            menuExpanded = false
+                            onRefreshClick()
+                        }
+                    )
                     DropdownMenuItem(
                         text = { Text("Salin Tautan", style = MaterialTheme.typography.bodyLarge) },
                         leadingIcon = {
@@ -288,7 +348,7 @@ fun FocusTopBar(
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(0.6.dp)
+                    .height(0.5.dp)
                     .background(tokens.specularBorderBrush)
             )
         }
@@ -309,13 +369,13 @@ private fun IosCircleIconButton(
         color = fillColor,
         contentColor = MaterialTheme.colorScheme.onSurface,
         border = BorderStroke(0.65.dp, tokens.specularBorderBrush),
-        modifier = Modifier.size(34.dp)
+        modifier = Modifier.size(31.dp)
     ) {
         Box(contentAlignment = Alignment.Center) {
             Icon(
                 imageVector = icon,
                 contentDescription = contentDescription,
-                modifier = Modifier.size(18.dp)
+                modifier = Modifier.size(16.dp)
             )
         }
     }

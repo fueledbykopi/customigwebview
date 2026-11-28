@@ -187,6 +187,32 @@ class MainActivity : ComponentActivity() {
         app.networkMonitor.start()
         viewModel.setForeground(true)
         webViewController.onResume()
+        if (fullscreenViewState == null) {
+            setSystemBarsVisible(true)
+        }
+        // Re-sync live theme, Ghost Mode, and custom background injections after long idle/backgrounding
+        val prefs = viewModel.preferences.value
+        val isSystemDark = (resources.configuration.uiMode and
+            android.content.res.Configuration.UI_MODE_NIGHT_MASK) ==
+            android.content.res.Configuration.UI_MODE_NIGHT_YES
+        val isDark = when (prefs.themeMode) {
+            com.focusgram.client.data.ThemeMode.LIGHT -> false
+            com.focusgram.client.data.ThemeMode.DARK,
+            com.focusgram.client.data.ThemeMode.AMOLED -> true
+            com.focusgram.client.data.ThemeMode.SYSTEM -> when (prefs.appThemeStyle) {
+                com.focusgram.client.data.AppThemeStyle.CYBERPUNK,
+                com.focusgram.client.data.AppThemeStyle.GTA6,
+                com.focusgram.client.data.AppThemeStyle.SPIDERMAN,
+                com.focusgram.client.data.AppThemeStyle.TECH -> true
+                com.focusgram.client.data.AppThemeStyle.LIQUID_GLASS,
+                com.focusgram.client.data.AppThemeStyle.BARBIE -> isSystemDark
+            }
+        }
+        webViewController.applyInjections(
+            prefs = prefs,
+            isDarkTheme = isDark,
+            isAmoled = prefs.themeMode == com.focusgram.client.data.ThemeMode.AMOLED
+        )
     }
 
     override fun onPause() {

@@ -46,11 +46,36 @@ class InstagramUrlPolicyTest {
     }
 
     @Test
-    fun `detects Reels routes accurately`() {
+    fun `ghost mode URL matchers detect story seen and DM seen endpoints accurately`() {
+        assertTrue(InstagramUrlPolicy.isStorySeenUrl("https://www.instagram.com/api/v1/stories/reel/seen"))
+        assertTrue(InstagramUrlPolicy.isStorySeenUrl("https://www.instagram.com/stories/reel/seen"))
+        assertTrue(InstagramUrlPolicy.isStorySeenUrl("https://www.instagram.com/api/v1/media/seen/"))
+        assertFalse(InstagramUrlPolicy.isStorySeenUrl("https://www.instagram.com/api/v1/feed/reels_tray/"))
+
+        assertTrue(InstagramUrlPolicy.isDmSeenOrTypingUrl("https://www.instagram.com/api/v1/direct_v2/threads/12345/items/999/seen/"))
+        assertTrue(InstagramUrlPolicy.isDmSeenOrTypingUrl("https://www.instagram.com/api/v1/direct_v2/threads/12345/mark_seen/"))
+        assertTrue(InstagramUrlPolicy.isDmSeenOrTypingUrl("https://www.instagram.com/api/v1/direct_v2/threads/12345/indicate_activity/"))
+        assertFalse(InstagramUrlPolicy.isDmSeenOrTypingUrl("https://www.instagram.com/api/v1/direct_v2/threads/12345/"))
+        assertFalse(InstagramUrlPolicy.isDmSeenOrTypingUrl("https://www.instagram.com/api/v1/direct_v2/threads/broadcast/text/"))
+    }
+
+    @Test
+    fun `detects custom media asset virtual URLs`() {
+        assertTrue(InstagramUrlPolicy.isCustomMediaAssetUrl("https://www.instagram.com/__focusgram_media__/chat_bg?v=123"))
+        assertTrue(InstagramUrlPolicy.isCustomMediaAssetUrl("https://www.instagram.com/__focusgram_media__/timeline_bg?v=456"))
+        assertFalse(InstagramUrlPolicy.isCustomMediaAssetUrl("https://www.instagram.com/direct/inbox/"))
+    }
+
+    @Test
+    fun `detects Reels and Explore routes accurately`() {
         assertTrue(InstagramUrlPolicy.isReelsRoute("https://www.instagram.com/reels/"))
         assertTrue(InstagramUrlPolicy.isReelsRoute("https://www.instagram.com/reel/CxYz123/"))
         assertFalse(InstagramUrlPolicy.isReelsRoute("https://www.instagram.com/p/CxYz123/"))
         assertFalse(InstagramUrlPolicy.isReelsRoute("https://www.instagram.com/direct/inbox/"))
+
+        assertTrue(InstagramUrlPolicy.isExploreRoute("https://www.instagram.com/explore/"))
+        assertTrue(InstagramUrlPolicy.isExploreRoute("https://www.instagram.com/explore/tags/nature/"))
+        assertFalse(InstagramUrlPolicy.isExploreRoute("https://www.instagram.com/"))
     }
 
     @Test

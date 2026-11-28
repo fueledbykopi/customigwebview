@@ -53,9 +53,13 @@ fun FocusControlSheet(
     sessionElapsedSeconds: Int,
     blockedTrackersCount: Int,
     blockedDistractionsCount: Int,
+    blockedGhostTracesCount: Int,
     isDarkTheme: Boolean,
     onDismiss: () -> Unit,
     onApplyPreset: (FocusPreset) -> Unit,
+    onToggleGhostMode: (Boolean) -> Unit,
+    onToggleGhostViewStories: (Boolean) -> Unit,
+    onToggleGhostReadDm: (Boolean) -> Unit,
     onToggleHideReels: (Boolean) -> Unit,
     onToggleHideExploreFeed: (Boolean) -> Unit,
     onToggleHideSuggestedAndAds: (Boolean) -> Unit,
@@ -110,7 +114,7 @@ fun FocusControlSheet(
                 Spacer(modifier = Modifier.width(12.dp))
                 Column(modifier = Modifier.weight(1f)) {
                     Text(
-                        text = "Mode Fokus",
+                        text = "Mode Fokus & Ghost",
                         style = MaterialTheme.typography.titleLarge,
                         color = MaterialTheme.colorScheme.onBackground
                     )
@@ -136,7 +140,7 @@ fun FocusControlSheet(
                 ) {
                     StatColumn(
                         value = formatSessionTime(sessionElapsedSeconds),
-                        label = "Durasi Sesi",
+                        label = "Sesi",
                         modifier = Modifier.weight(1f)
                     )
                     VerticalDivider(
@@ -162,6 +166,56 @@ fun FocusControlSheet(
                         value = blockedTrackersCount.toString(),
                         label = "Pelacak",
                         modifier = Modifier.weight(1f)
+                    )
+                    VerticalDivider(
+                        thickness = 0.5.dp,
+                        color = MaterialTheme.colorScheme.outline.copy(alpha = 0.22f),
+                        modifier = Modifier
+                            .fillMaxHeight()
+                            .padding(vertical = 4.dp)
+                    )
+                    StatColumn(
+                        value = blockedGhostTracesCount.toString(),
+                        label = "Ghost",
+                        modifier = Modifier.weight(1f)
+                    )
+                }
+            }
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            // Ghost Mode Quick Controls
+            IosSectionHeader(title = "Mode Hantu (Ghost Mode)")
+            IosGroupedCard {
+                IosToggleRow(
+                    icon = FocusIcons.Ghost,
+                    iconTint = IosPurple,
+                    title = "Aktifkan Ghost Mode",
+                    subtitle = "Tonton Story tanpa jejak & baca full DM tanpa status seen",
+                    checked = preferences.ghostModeEnabled,
+                    onCheckedChange = onToggleGhostMode,
+                    isDark = isDarkTheme
+                )
+                if (preferences.ghostModeEnabled) {
+                    IosHairlineDivider(startIndent = 56.dp)
+                    IosToggleRow(
+                        icon = FocusIcons.Stories,
+                        iconTint = IosIndigo,
+                        title = "Lihat Story Tanpa Jejak",
+                        subtitle = "Akunmu tidak masuk ke daftar penonton Story",
+                        checked = preferences.ghostViewStories,
+                        onCheckedChange = onToggleGhostViewStories,
+                        isDark = isDarkTheme
+                    )
+                    IosHairlineDivider(startIndent = 56.dp)
+                    IosToggleRow(
+                        icon = FocusIcons.ChatBubble,
+                        iconTint = IosBlue,
+                        title = "Baca Full DM Tanpa Seen",
+                        subtitle = "Blokir tanda terbaca & indikator mengetik di DM",
+                        checked = preferences.ghostReadDm,
+                        onCheckedChange = onToggleGhostReadDm,
+                        isDark = isDarkTheme
                     )
                 }
             }
@@ -200,7 +254,7 @@ fun FocusControlSheet(
                     icon = FocusIcons.ExploreOff,
                     iconTint = IosIndigo,
                     title = "Sembunyikan Grid Explore",
-                    subtitle = "Tetap bisa mencari akun tanpa konten viral",
+                    subtitle = "Matikan agar halaman Explore Instagram tampil penuh",
                     checked = preferences.hideExploreFeed,
                     onCheckedChange = onToggleHideExploreFeed,
                     isDark = isDarkTheme
@@ -219,8 +273,8 @@ fun FocusControlSheet(
                 IosToggleRow(
                     icon = FocusIcons.Phone,
                     iconTint = IosBlue,
-                    title = "Hapus Banner 'Buka Aplikasi'",
-                    subtitle = "Bersihkan ajakan unduh/buka aplikasi resmi",
+                    title = "Hapus Banner 'Instagram Lite / Aplikasi'",
+                    subtitle = "Hilangkan tulisan 'Use Instagram Lite' & ajakan unduh aplikasi",
                     checked = preferences.hideOpenInAppPrompts,
                     onCheckedChange = onToggleHideOpenInApp,
                     isDark = isDarkTheme

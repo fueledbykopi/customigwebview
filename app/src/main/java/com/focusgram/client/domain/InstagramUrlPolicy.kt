@@ -14,6 +14,10 @@ object InstagramUrlPolicy {
     const val DIRECT_URL = "https://www.instagram.com/direct/inbox/"
     const val ACTIVITY_URL = "https://www.instagram.com/accounts/activity/"
 
+    const val CUSTOM_MEDIA_PATH_PREFIX = "/__focusgram_media__/"
+    const val CHAT_BG_VIRTUAL_PATH = "/__focusgram_media__/chat_bg"
+    const val TIMELINE_BG_VIRTUAL_PATH = "/__focusgram_media__/timeline_bg"
+
     private val internalExactHosts = setOf(
         "instagram.com",
         "www.instagram.com",
@@ -70,6 +74,21 @@ object InstagramUrlPolicy {
         "/client_event"
     )
 
+    private val storySeenPathMarkers = listOf(
+        "/stories/reel/seen",
+        "/api/v1/stories/reel/seen",
+        "/api/v1/media/seen",
+        "/media/seen",
+        "/reel/seen"
+    )
+
+    private val dmSeenPathMarkers = listOf(
+        "/mark_seen",
+        "/mark_thread_read",
+        "/indicate_activity",
+        "/send_read_receipt"
+    )
+
     private val reservedTopLevelPaths = setOf(
         "",
         "explore",
@@ -93,6 +112,25 @@ object InstagramUrlPolicy {
     fun isHttpOrHttps(url: String): Boolean {
         val lower = url.trim().lowercase(Locale.US)
         return lower.startsWith("https://") || lower.startsWith("http://")
+    }
+
+    fun isCustomMediaAssetUrl(url: String): Boolean {
+        val path = parsePath(url)
+        return path.startsWith(CUSTOM_MEDIA_PATH_PREFIX)
+    }
+
+    fun isStorySeenUrl(url: String): Boolean {
+        val path = parsePath(url)
+        if (path.isEmpty()) return false
+        return storySeenPathMarkers.any { marker -> path.contains(marker) }
+    }
+
+    fun isDmSeenOrTypingUrl(url: String): Boolean {
+        val path = parsePath(url)
+        if (path.isEmpty()) return false
+        if (path.contains("/direct_v2/") && path.contains("/seen")) return true
+        if (path.contains("/direct/") && path.contains("/seen")) return true
+        return dmSeenPathMarkers.any { marker -> path.contains(marker) }
     }
 
     fun isRedirectBounceUrl(url: String): Boolean {
@@ -149,6 +187,21 @@ object InstagramUrlPolicy {
         return path == "/reels" ||
             path.startsWith("/reels/") ||
             path.startsWith("/reel/")
+    }
+
+    fun isExploreRoute(url: String): Boolean {
+        val path = parsePath(url)
+        return path == "/explore" || path.startsWith("/explore/")
+    }
+
+    fun isStoryRoute(url: String): Boolean {
+        val path = parsePath(url)
+        return path == "/stories" || path.startsWith("/stories/")
+    }
+
+    fun isDirectThreadRoute(url: String): Boolean {
+        val path = parsePath(url)
+        return path.startsWith("/direct/t/")
     }
 
     fun isAuthOrChallengeRoute(url: String): Boolean {

@@ -81,17 +81,22 @@ private val sessionTimerOptions = listOf(0, 10, 15, 30, 45, 60)
 fun SettingsScreen(
     preferences: FocusPreferences,
     isDarkTheme: Boolean,
+    blockedGhostTracesCount: Int,
     chatBgPreview: Bitmap?,
     timelineBgPreview: Bitmap?,
     customAppIconPreview: Bitmap?,
     onNavigateBack: () -> Unit,
     onAppThemeStyleChange: (AppThemeStyle) -> Unit,
     onThemeModeChange: (ThemeMode) -> Unit,
+    onToggleGhostMode: (Boolean) -> Unit,
+    onToggleGhostViewStories: (Boolean) -> Unit,
+    onToggleGhostReadDm: (Boolean) -> Unit,
     onPickCustomMedia: (CustomMediaTarget) -> Unit,
     onClearCustomMedia: (CustomMediaTarget) -> Unit,
     onPinCustomAppIcon: () -> Unit,
     onBackgroundDimChange: (Float) -> Unit,
     onToggleShowReels: (Boolean) -> Unit,
+    onToggleShowExplore: (Boolean) -> Unit,
     onToggleNativeBottomBar: (Boolean) -> Unit,
     onToggleShowTopBar: (Boolean) -> Unit,
     onTogglePullToRefresh: (Boolean) -> Unit,
@@ -119,7 +124,7 @@ fun SettingsScreen(
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .height(52.dp)
+                        .height(50.dp)
                         .padding(horizontal = 8.dp)
                 ) {
                     Row(
@@ -166,7 +171,47 @@ fun SettingsScreen(
                     .padding(horizontal = 16.dp, vertical = 16.dp)
                     .navigationBarsPadding()
             ) {
-                // Section 1: 6 Visual Themes (iOS Liquid Glass + 5 Custom Themes)
+                // Section 1: Ghost Mode (Invisible Story Viewer & Stealth Full DM Reader)
+                IosSectionHeader(title = "Mode Hantu (Ghost Mode)")
+                IosGroupedCard {
+                    IosToggleRow(
+                        icon = FocusIcons.Ghost,
+                        iconTint = IosPurple,
+                        title = "Aktifkan Ghost Mode",
+                        subtitle = if (preferences.ghostModeEnabled) {
+                            "Aktif • $blockedGhostTracesCount jejak diblokir sesi ini"
+                        } else {
+                            "Lihat Story tanpa jejak & baca full DM tanpa ketahuan seen"
+                        },
+                        checked = preferences.ghostModeEnabled,
+                        onCheckedChange = onToggleGhostMode,
+                        isDark = isDarkTheme
+                    )
+                    IosHairlineDivider(startIndent = 56.dp)
+                    IosToggleRow(
+                        icon = FocusIcons.Stories,
+                        iconTint = IosIndigo,
+                        title = "Lihat Story Tanpa Jejak",
+                        subtitle = "Tonton Story orang lain tanpa masuk daftar viewer",
+                        checked = preferences.ghostViewStories,
+                        onCheckedChange = onToggleGhostViewStories,
+                        isDark = isDarkTheme
+                    )
+                    IosHairlineDivider(startIndent = 56.dp)
+                    IosToggleRow(
+                        icon = FocusIcons.ChatBubble,
+                        iconTint = IosBlue,
+                        title = "Baca Full DM Tanpa Seen",
+                        subtitle = "Buka & baca seluruh isi chat DM tanpa tanda terbaca & mengetik",
+                        checked = preferences.ghostReadDm,
+                        onCheckedChange = onToggleGhostReadDm,
+                        isDark = isDarkTheme
+                    )
+                }
+
+                Spacer(modifier = Modifier.height(22.dp))
+
+                // Section 2: 6 Visual Themes (iOS Liquid Glass + 5 Custom Themes)
                 IosSectionHeader(title = "Tema Aplikasi (Liquid Glass & 5 Tema)")
                 IosGroupedCard {
                     Column(modifier = Modifier.padding(14.dp)) {
@@ -180,7 +225,7 @@ fun SettingsScreen(
                                     color = MaterialTheme.colorScheme.onSurface
                                 )
                                 Text(
-                                    text = "Frosted Blur iOS terbaru, Cyberpunk, GTA VI, Spider-Man, Tech & Barbie",
+                                    text = "Diterapkan ke aplikasi & halaman Instagram secara langsung",
                                     style = MaterialTheme.typography.bodyMedium,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant
                                 )
@@ -236,7 +281,7 @@ fun SettingsScreen(
 
                 Spacer(modifier = Modifier.height(22.dp))
 
-                // Section 2: Custom Backgrounds & App Icon (with Pinch-to-Zoom cropper)
+                // Section 3: Custom Backgrounds & App Icon (with Pinch-to-Zoom cropper)
                 IosSectionHeader(title = "Background Foto & Ikon Aplikasi")
                 IosGroupedCard {
                     CustomMediaRow(
@@ -357,7 +402,7 @@ fun SettingsScreen(
 
                 Spacer(modifier = Modifier.height(22.dp))
 
-                // Section 3: Konten & Navigasi
+                // Section 4: Konten & Navigasi
                 IosSectionHeader(title = "Konten & Navigasi")
                 IosGroupedCard {
                     IosToggleRow(
@@ -371,6 +416,16 @@ fun SettingsScreen(
                     )
                     IosHairlineDivider(startIndent = 56.dp)
                     IosToggleRow(
+                        icon = FocusIcons.SearchOutline,
+                        iconTint = IosIndigo,
+                        title = "Tampilkan Grid Explore",
+                        subtitle = "Tampilkan konten penemuan & pencarian di tab Explore Instagram",
+                        checked = !preferences.hideExploreFeed,
+                        onCheckedChange = onToggleShowExplore,
+                        isDark = isDarkTheme
+                    )
+                    IosHairlineDivider(startIndent = 56.dp)
+                    IosToggleRow(
                         title = "Bilah Navigasi Bawah Native",
                         subtitle = "Opsional (bukan default): floating dock Liquid Glass di bagian bawah",
                         checked = preferences.useNativeBottomBar,
@@ -380,7 +435,7 @@ fun SettingsScreen(
                     IosHairlineDivider(startIndent = 14.dp)
                     IosToggleRow(
                         title = "Tampilkan Bilah Atas",
-                        subtitle = "Matikan untuk layar penuh (tombol Fokus mengambang tetap tersedia)",
+                        subtitle = "Matikan untuk layar penuh (tombol Fokus & Pengaturan mengambang tetap tersedia)",
                         checked = preferences.showTopBar,
                         onCheckedChange = onToggleShowTopBar,
                         isDark = isDarkTheme
@@ -388,7 +443,7 @@ fun SettingsScreen(
                     IosHairlineDivider(startIndent = 14.dp)
                     IosToggleRow(
                         title = "Tarik untuk Muat Ulang",
-                        subtitle = "Aktifkan pull-to-refresh saat berada di bagian atas halaman",
+                        subtitle = "Pull-to-refresh pintar hanya saat di puncak halaman (tidak mengganggu DM/Story)",
                         checked = preferences.enablePullToRefresh,
                         onCheckedChange = onTogglePullToRefresh,
                         isDark = isDarkTheme
@@ -397,7 +452,7 @@ fun SettingsScreen(
 
                 Spacer(modifier = Modifier.height(22.dp))
 
-                // Section 4: Mindful Session Timer
+                // Section 5: Mindful Session Timer
                 IosSectionHeader(title = "Pengingat Waktu Fokus")
                 IosGroupedCard {
                     Column(modifier = Modifier.padding(14.dp)) {
@@ -461,7 +516,7 @@ fun SettingsScreen(
 
                 Spacer(modifier = Modifier.height(22.dp))
 
-                // Section 5: Privacy & Storage
+                // Section 6: Privacy & Storage
                 IosSectionHeader(title = "Privasi & Performa")
                 IosGroupedCard {
                     IosToggleRow(
@@ -524,7 +579,7 @@ fun SettingsScreen(
 
                 Spacer(modifier = Modifier.height(22.dp))
 
-                // Section 6: About
+                // Section 7: About
                 IosSectionHeader(title = "Tentang")
                 IosGroupedCard {
                     Column(modifier = Modifier.padding(14.dp)) {
@@ -564,7 +619,7 @@ fun SettingsScreen(
                         }
                         Spacer(modifier = Modifier.height(10.dp))
                         Text(
-                            text = "Klien Instagram Android modern dengan desain iOS Liquid Glass, 5 tema kustom, latar belakang foto & ikon kustom dengan pinch-to-zoom, serta kontrol fokus tanpa distraksi.",
+                            text = "Klien Instagram Android cepat & native-feel dengan Ghost Mode (Story tanpa jejak & DM tanpa seen), desain iOS Liquid Glass, 6 tema penuh, latar belakang foto DM/Timeline, serta kontrol fokus tanpa distraksi.",
                             style = MaterialTheme.typography.bodyMedium,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )

@@ -757,4 +757,24 @@ object FocusIcons {
             close()
         }
     }
+
+    val Ghost: ImageVector by lazy {
+        strokeIcon("Ghost") {
+            moveTo(5.2f, 19.6f)
+            verticalLineTo(10.5f)
+            curveTo(5.2f, 6.6f, 8.2f, 3.6f, 12f, 3.6f)
+            curveTo(15.8f, 3.6f, 18.8f, 6.6f, 18.8f, 10.5f)
+            verticalLineTo(19.6f)
+            lineTo(16.3f, 17.8f)
+            lineTo(14.1f, 19.6f)
+            lineTo(12f, 17.8f)
+            lineTo(9.9f, 19.6f)
+            lineTo(7.7f, 17.8f)
+            close()
+            moveTo(9.6f, 10.4f)
+            verticalLineTo(10.6f)
+            moveTo(14.4f, 10.4f)
+            verticalLineTo(10.6f)
+        }
+    }
 }

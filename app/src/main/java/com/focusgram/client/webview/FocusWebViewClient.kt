@@ -3,6 +3,7 @@ package com.focusgram.client.webview
 import android.graphics.Bitmap
 import android.net.Uri
 import android.webkit.CookieManager
+import android.webkit.RenderProcessGoneDetail
 import android.webkit.WebResourceError
 import android.webkit.WebResourceRequest
 import android.webkit.WebResourceResponse
@@ -11,6 +12,9 @@ import android.webkit.WebViewClient
 import com.focusgram.client.data.FocusPreferences
 import com.focusgram.client.domain.InstagramUrlPolicy
 import java.io.ByteArrayInputStream
+import java.io.File
+import java.io.FileInputStream
+import java.util.concurrent.Executors
 
 class FocusWebViewClient(
     private val preferencesProvider: () -> FocusPreferences,
@@ -22,8 +26,12 @@ class FocusWebViewClient(
     private val onOpenExternalUrl: (url: String) -> Unit,
     private val onOpenExternalUri: (uri: Uri) -> Unit,
     private val onTrackerBlocked: () -> Unit,
-    private val onReelsBlocked: () -> Unit
+    private val onGhostActionBlocked: (kind: String) -> Unit,
+    private val onReelsBlocked: () -> Unit,
+    private val onRenderProcessGoneCallback: () -> Unit
 ) : WebViewClient() {
+
+    private val cookieFlushExecutor = Executors.newSingleThreadExecutor()
 
     override fun shouldInterceptRequest(
         view: WebView?,
@@ -31,6 +39,42 @@ class FocusWebViewClient(
     ): WebResourceResponse? {
         val url = request?.url?.toString() ?: return super.shouldInterceptRequest(view, request)
         val prefs = preferencesProvider()
+
+        // 1. Serve user's cropped Chat (DM) & Timeline photo backgrounds from local storage on same-origin virtual URLs
+        if (InstagramUrlPolicy.isCustomMediaAssetUrl(url)) {
+            val path = request.url?.path.orEmpty()
+            val filePath = when {
+                path.startsWith(InstagramUrlPolicy.CHAT_BG_VIRTUAL_PATH) -> prefs.chatBackgroundPath
+                path.startsWith(InstagramUrlPolicy.TIMELINE_BG_VIRTUAL_PATH) -> prefs.timelineBackgroundPath
+                else -> ""
+            }
+            if (filePath.isNotBlank()) {
+                val file = File(filePath)
+                if (file.exists() && file.canRead()) {
+                    val mime = if (file.name.endsWith(".png", ignoreCase = true)) "image/png" else "image/jpeg"
+                    val headers = mapOf(
+                        "Cache-Control" to "no-store, no-cache, must-revalidate",
+                        "Access-Control-Allow-Origin" to "*"
+                    )
+                    return runCatching {
+                        WebResourceResponse(mime, null, 200, "OK", headers, FileInputStream(file))
+                    }.getOrNull()
+                }
+            }
+            return WebResourceResponse("text/plain", "utf-8", 404, "Not Found", emptyMap(), ByteArrayInputStream(ByteArray(0)))
+        }
+
+        // 2. Ghost Mode network-layer protection (Story seen & DM read-receipt / typing endpoints)
+        if (prefs.isGhostStoryActive && InstagramUrlPolicy.isStorySeenUrl(url)) {
+            onGhostActionBlocked("story")
+            return syntheticOkJsonResponse()
+        }
+        if (prefs.isGhostDmActive && InstagramUrlPolicy.isDmSeenOrTypingUrl(url)) {
+            onGhostActionBlocked("dm")
+            return syntheticOkJsonResponse()
+        }
+
+        // 3. Tracker & telemetry blocker
         if (prefs.blockTrackers && InstagramUrlPolicy.isTrackerOrAdUrl(url)) {
             onTrackerBlocked()
             return WebResourceResponse(
@@ -48,7 +92,6 @@ class FocusWebViewClient(
 
         // Handle non-HTTP schemes cleanly (intent://, mailto:, tel:, etc.)
         if (!InstagramUrlPolicy.isHttpOrHttps(rawUrl)) {
-            // Suppress Instagram app-launch intent:// links when hideOpenInAppPrompts is active
             if (preferencesProvider().hideOpenInAppPrompts && rawUrl.startsWith("intent://")) {
                 return true
             }
@@ -58,8 +101,10 @@ class FocusWebViewClient(
 
         val resolvedUrl = InstagramUrlPolicy.unwrapRedirectUrl(rawUrl)
 
-        // Block Reels route when Hide Reels is enabled
-        if (preferencesProvider().hideReels && InstagramUrlPolicy.isReelsRoute(resolvedUrl)) {
+        // Block Reels route when Hide Reels is enabled (allow individual /reel/ post taps coming from Explore)
+        val currentUrl = view?.url.orEmpty()
+        val isFromExplore = InstagramUrlPolicy.isExploreRoute(currentUrl)
+        if (preferencesProvider().hideReels && InstagramUrlPolicy.isReelsRoute(resolvedUrl) && !isFromExplore) {
             onReelsBlocked()
             return true
         }
@@ -95,7 +140,9 @@ class FocusWebViewClient(
         super.onPageFinished(view, url)
         if (view != null) {
             injectCleaners(view)
-            runCatching { CookieManager.getInstance().flush() }
+            cookieFlushExecutor.execute {
+                runCatching { CookieManager.getInstance().flush() }
+            }
             onPageFinishedCallback(url ?: view.url.orEmpty(), view.canGoBack())
         }
     }
@@ -114,6 +161,14 @@ class FocusWebViewClient(
         }
     }
 
+    override fun onRenderProcessGone(
+        view: WebView?,
+        detail: RenderProcessGoneDetail?
+    ): Boolean {
+        onRenderProcessGoneCallback()
+        return true
+    }
+
     private fun injectCleaners(webView: WebView) {
         val script = InstagramScriptInjector.buildInjectionScript(
             prefs = preferencesProvider(),
@@ -121,5 +176,17 @@ class FocusWebViewClient(
             isAmoled = isAmoledProvider()
         )
         webView.evaluateJavascript(script, null)
+    }
+
+    private fun syntheticOkJsonResponse(): WebResourceResponse {
+        val payload = """{"data":{},"status":"ok"}""".toByteArray(Charsets.UTF_8)
+        return WebResourceResponse(
+            "application/json",
+            "utf-8",
+            200,
+            "OK",
+            mapOf("Cache-Control" to "no-store"),
+            ByteArrayInputStream(payload)
+        )
     }
 }

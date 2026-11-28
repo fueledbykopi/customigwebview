@@ -1,5 +1,6 @@
 package com.focusgram.client.webview
 
+import android.graphics.Color
 import android.webkit.CookieManager
 import android.webkit.WebStorage
 import android.webkit.WebView
@@ -33,6 +34,10 @@ class WebViewController {
         webView?.loadUrl(url)
     }
 
+    /**
+     * Uses fast in-DOM SPA navigation for instant tab switches (zero full-page reload)
+     * with automatic fallback to direct URL loading if the SPA link isn't present.
+     */
     fun navigateToSection(section: InstagramSection, currentSection: InstagramSection) {
         val wv = webView ?: return
         if (section == currentSection && section == InstagramSection.HOME) {
@@ -40,11 +45,26 @@ class WebViewController {
             return
         }
         when (section) {
-            InstagramSection.HOME -> wv.loadUrl(InstagramUrlPolicy.HOME_URL)
-            InstagramSection.SEARCH -> wv.loadUrl(InstagramUrlPolicy.EXPLORE_URL)
-            InstagramSection.REELS -> wv.loadUrl(InstagramUrlPolicy.REELS_URL)
-            InstagramSection.DIRECT -> wv.loadUrl(InstagramUrlPolicy.DIRECT_URL)
-            InstagramSection.ACTIVITY -> wv.loadUrl(InstagramUrlPolicy.ACTIVITY_URL)
+            InstagramSection.HOME -> wv.evaluateJavascript(
+                InstagramScriptInjector.buildSpaNavigateScript("/", InstagramUrlPolicy.HOME_URL),
+                null
+            )
+            InstagramSection.SEARCH -> wv.evaluateJavascript(
+                InstagramScriptInjector.buildSpaNavigateScript("/explore/", InstagramUrlPolicy.EXPLORE_URL),
+                null
+            )
+            InstagramSection.REELS -> wv.evaluateJavascript(
+                InstagramScriptInjector.buildSpaNavigateScript("/reels/", InstagramUrlPolicy.REELS_URL),
+                null
+            )
+            InstagramSection.DIRECT -> wv.evaluateJavascript(
+                InstagramScriptInjector.buildSpaNavigateScript("/direct/inbox/", InstagramUrlPolicy.DIRECT_URL),
+                null
+            )
+            InstagramSection.ACTIVITY -> wv.evaluateJavascript(
+                InstagramScriptInjector.buildSpaNavigateScript("/accounts/activity/", InstagramUrlPolicy.ACTIVITY_URL),
+                null
+            )
             InstagramSection.PROFILE -> {
                 wv.evaluateJavascript(InstagramScriptInjector.buildNavigateToProfileScript(), null)
             }
@@ -95,17 +115,31 @@ class WebViewController {
         wv.evaluateJavascript(script, null)
     }
 
-    fun applyDarkening(isDarkTheme: Boolean) {
+    /**
+     * Disables WebView's algorithmic auto-darkening because FocusGram applies exact CSS variables
+     * and Instagram's native __fb-dark-mode / __fb-light-mode classes for every theme without color inversion.
+     */
+    fun applyDarkening() {
         val wv = webView ?: return
         if (WebViewFeature.isFeatureSupported(WebViewFeature.ALGORITHMIC_DARKENING)) {
-            WebSettingsCompat.setAlgorithmicDarkeningAllowed(wv.settings, isDarkTheme)
+            WebSettingsCompat.setAlgorithmicDarkeningAllowed(wv.settings, false)
         }
     }
 
     fun applyBackgroundTransparency(isTransparent: Boolean, fallbackColor: Int) {
-        val color = if (isTransparent) android.graphics.Color.TRANSPARENT else fallbackColor
-        webView?.setBackgroundColor(color)
-        swipeRefreshRef?.get()?.setBackgroundColor(color)
+        val color = if (isTransparent) Color.TRANSPARENT else fallbackColor
+        webView?.let { wv ->
+            if (isTransparent) {
+                wv.background = null
+            }
+            wv.setBackgroundColor(color)
+        }
+        swipeRefreshRef?.get()?.let { sr ->
+            if (isTransparent) {
+                sr.background = null
+            }
+            sr.setBackgroundColor(color)
+        }
     }
 
     fun clearCacheKeepSession() {
@@ -132,18 +166,14 @@ class WebViewController {
     }
 
     fun onPause() {
-        runCatching { CookieManager.getInstance().flush() }
-        webView?.let { wv ->
-            wv.onPause()
-            wv.pauseTimers()
-        }
+        Thread {
+            runCatching { CookieManager.getInstance().flush() }
+        }.start()
+        webView?.onPause()
     }
 
     fun onResume() {
-        webView?.let { wv ->
-            wv.resumeTimers()
-            wv.onResume()
-        }
+        webView?.onResume()
     }
 
     fun destroy() {
@@ -159,6 +189,6 @@ class WebViewController {
         // Modern mobile Chrome User-Agent without the "; wv)" token that degrades web features
         const val MOBILE_USER_AGENT =
             "Mozilla/5.0 (Linux; Android 14; Pixel 8) AppleWebKit/537.36 " +
-                "(KHTML, like Gecko) Chrome/128.0.6613.127 Mobile Safari/537.36"
+                "(KHTML, like Gecko) Chrome/131.0.6778.135 Mobile Safari/537.36"
     }
 }

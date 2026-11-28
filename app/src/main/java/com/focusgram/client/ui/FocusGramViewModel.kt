@@ -37,6 +37,8 @@ data class MainUiState(
     val errorMessage: String? = null,
     val blockedTrackersCount: Int = 0,
     val blockedDistractionsCount: Int = 0,
+    val blockedGhostTracesCount: Int = 0,
+    val webViewGeneration: Int = 0,
     val sessionElapsedSeconds: Int = 0,
     val showMindfulBreakDialog: Boolean = false,
     val showFocusSheet: Boolean = false,
@@ -202,6 +204,20 @@ class FocusGramViewModel(
         _uiState.update { it.copy(blockedDistractionsCount = it.blockedDistractionsCount + count) }
     }
 
+    fun onGhostActionBlocked(@Suppress("UNUSED_PARAMETER") kind: String) {
+        _uiState.update { it.copy(blockedGhostTracesCount = it.blockedGhostTracesCount + 1) }
+    }
+
+    fun onWebViewRenderProcessGone() {
+        _uiState.update {
+            it.copy(
+                webViewGeneration = it.webViewGeneration + 1,
+                isLoading = true,
+                errorMessage = null
+            )
+        }
+    }
+
     fun setFocusSheetVisible(visible: Boolean) {
         _uiState.update { it.copy(showFocusSheet = visible) }
     }
@@ -250,6 +266,18 @@ class FocusGramViewModel(
 
     fun toggleBlockTrackers(enabled: Boolean) = viewModelScope.launch {
         preferencesRepository.updateBlockTrackers(enabled)
+    }
+
+    fun toggleGhostMode(enabled: Boolean) = viewModelScope.launch {
+        preferencesRepository.updateGhostModeEnabled(enabled)
+    }
+
+    fun toggleGhostViewStories(enabled: Boolean) = viewModelScope.launch {
+        preferencesRepository.updateGhostViewStories(enabled)
+    }
+
+    fun toggleGhostReadDm(enabled: Boolean) = viewModelScope.launch {
+        preferencesRepository.updateGhostReadDm(enabled)
     }
 
     fun toggleUseNativeBottomBar(enabled: Boolean) = viewModelScope.launch {

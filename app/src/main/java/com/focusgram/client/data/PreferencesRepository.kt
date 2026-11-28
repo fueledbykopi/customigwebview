@@ -31,6 +31,9 @@ class PreferencesRepository(private val context: Context) {
         val AUTO_MUTE_VIDEOS = booleanPreferencesKey("auto_mute_videos")
         val GRAYSCALE_MODE = booleanPreferencesKey("grayscale_mode")
         val BLOCK_TRACKERS = booleanPreferencesKey("block_trackers")
+        val GHOST_MODE_ENABLED = booleanPreferencesKey("ghost_mode_enabled")
+        val GHOST_VIEW_STORIES = booleanPreferencesKey("ghost_view_stories")
+        val GHOST_READ_DM = booleanPreferencesKey("ghost_read_dm")
         val USE_NATIVE_BOTTOM_BAR = booleanPreferencesKey("use_native_bottom_bar")
         val SHOW_TOP_BAR = booleanPreferencesKey("show_top_bar")
         val ENABLE_PULL_TO_REFRESH = booleanPreferencesKey("enable_pull_to_refresh")
@@ -64,13 +67,16 @@ class PreferencesRepository(private val context: Context) {
             FocusPreferences(
                 hideOpenInAppPrompts = prefs[Keys.HIDE_OPEN_IN_APP] ?: true,
                 hideReels = prefs[Keys.HIDE_REELS] ?: true,
-                hideExploreFeed = prefs[Keys.HIDE_EXPLORE_FEED] ?: true,
+                hideExploreFeed = prefs[Keys.HIDE_EXPLORE_FEED] ?: false,
                 hideStories = prefs[Keys.HIDE_STORIES] ?: false,
                 hideSuggestedAndAds = prefs[Keys.HIDE_SUGGESTED_AND_ADS] ?: true,
                 hideEngagementCounts = prefs[Keys.HIDE_ENGAGEMENT_COUNTS] ?: false,
                 autoMuteVideos = prefs[Keys.AUTO_MUTE_VIDEOS] ?: false,
                 grayscaleMode = prefs[Keys.GRAYSCALE_MODE] ?: false,
                 blockTrackers = prefs[Keys.BLOCK_TRACKERS] ?: true,
+                ghostModeEnabled = prefs[Keys.GHOST_MODE_ENABLED] ?: false,
+                ghostViewStories = prefs[Keys.GHOST_VIEW_STORIES] ?: true,
+                ghostReadDm = prefs[Keys.GHOST_READ_DM] ?: true,
                 useNativeBottomBar = prefs[Keys.USE_NATIVE_BOTTOM_BAR] ?: false,
                 showTopBar = prefs[Keys.SHOW_TOP_BAR] ?: true,
                 enablePullToRefresh = prefs[Keys.ENABLE_PULL_TO_REFRESH] ?: true,
@@ -120,6 +126,18 @@ class PreferencesRepository(private val context: Context) {
 
     suspend fun updateBlockTrackers(enabled: Boolean) {
         context.focusDataStore.edit { it[Keys.BLOCK_TRACKERS] = enabled }
+    }
+
+    suspend fun updateGhostModeEnabled(enabled: Boolean) {
+        context.focusDataStore.edit { it[Keys.GHOST_MODE_ENABLED] = enabled }
+    }
+
+    suspend fun updateGhostViewStories(enabled: Boolean) {
+        context.focusDataStore.edit { it[Keys.GHOST_VIEW_STORIES] = enabled }
+    }
+
+    suspend fun updateGhostReadDm(enabled: Boolean) {
+        context.focusDataStore.edit { it[Keys.GHOST_READ_DM] = enabled }
     }
 
     suspend fun updateUseNativeBottomBar(enabled: Boolean) {
@@ -183,7 +201,7 @@ class PreferencesRepository(private val context: Context) {
                 FocusPreset.BALANCED -> {
                     prefs[Keys.HIDE_OPEN_IN_APP] = true
                     prefs[Keys.HIDE_REELS] = true
-                    prefs[Keys.HIDE_EXPLORE_FEED] = true
+                    prefs[Keys.HIDE_EXPLORE_FEED] = false
                     prefs[Keys.HIDE_STORIES] = false
                     prefs[Keys.HIDE_SUGGESTED_AND_ADS] = true
                     prefs[Keys.HIDE_ENGAGEMENT_COUNTS] = false
